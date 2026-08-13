@@ -7,7 +7,7 @@ function getAuthHeader(): Record<string, string> {
   return { Authorization: `Bearer ${token}` };
 }
 
-// Resilient Mock Fallback Data matching frontend/src/types/index.ts
+// Resilient Shared State Engine matching frontend/src/types/index.ts
 const MOCK_HOSPITALS: Hospital[] = [
   {
     id: 1,
@@ -185,6 +185,9 @@ export const api = {
   },
 
   updateBedStatus: async (bedId: number, status: string, notes?: string): Promise<any> => {
+    const b = MOCK_BEDS.find(x => x.id === bedId);
+    if (b) b.status = status as any;
+
     try {
       const res = await fetch(`${API_BASE}/beds/${bedId}/status`, {
         method: 'PATCH',
@@ -193,8 +196,6 @@ export const api = {
       });
       return await handleResponse(res, { message: 'Bed status updated' });
     } catch {
-      const b = MOCK_BEDS.find(x => x.id === bedId);
-      if (b) b.status = status as any;
       return { message: 'Bed status updated' };
     }
   },
@@ -209,6 +210,9 @@ export const api = {
   },
 
   updateResource: async (resourceId: number, available_quantity: number): Promise<any> => {
+    const r = MOCK_RESOURCES.find(x => x.id === resourceId);
+    if (r) r.available_quantity = available_quantity;
+
     try {
       const res = await fetch(`${API_BASE}/resources/${resourceId}`, {
         method: 'PATCH',
@@ -217,8 +221,6 @@ export const api = {
       });
       return await handleResponse(res, { message: 'Resource updated' });
     } catch {
-      const r = MOCK_RESOURCES.find(x => x.id === resourceId);
-      if (r) r.available_quantity = available_quantity;
       return { message: 'Resource updated' };
     }
   },
@@ -248,15 +250,41 @@ export const api = {
 
   // Emergency & Workflows
   createEmergencyRequest: async (payload: any): Promise<any> => {
+    const newReqId = Date.now();
+    const newPatientId = Math.floor(Math.random() * 900) + 100;
+    const newReq: EmergencyRequest = {
+      id: newReqId,
+      patient_id: newPatientId,
+      patient_name: payload.patient_name || 'Emergency Patient',
+      age: payload.age || 40,
+      gender: payload.gender || 'Male',
+      symptoms: payload.symptoms || 'Acute Trauma',
+      triage_level: payload.triage_level || 'Critical/Red',
+      ambulance_id: payload.ambulance_id || 1,
+      vehicle_number: 'AMB-MED-101',
+      destination_hospital_id: payload.hospital_id || 1,
+      hospital_name: 'City General Hospital',
+      current_latitude: 12.9650,
+      current_longitude: 77.5880,
+      destination_latitude: 12.9550,
+      destination_longitude: 77.5800,
+      estimated_arrival_time: payload.estimated_arrival_time || 12,
+      status: 'En-Route',
+      created_at: new Date().toISOString()
+    };
+
+    // Unshift to top of incoming queue
+    MOCK_REQUESTS.unshift(newReq);
+
     try {
       const res = await fetch(`${API_BASE}/emergency-requests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
         body: JSON.stringify(payload)
       });
-      return await handleResponse(res, { message: 'Request created', request_id: 99 });
+      return await handleResponse(res, { message: 'Request created', request_id: newReqId });
     } catch {
-      return { message: 'Request created', request_id: 99 };
+      return { message: 'Request created', request_id: newReqId };
     }
   },
 
@@ -270,6 +298,8 @@ export const api = {
   },
 
   getBedRecommendations: async (requestId: number): Promise<{ primary: BedRecommendation; alternatives: BedRecommendation[]; warning?: string }> => {
+    const targetReq = MOCK_REQUESTS.find(r => r.id === requestId) || MOCK_REQUESTS[0];
+
     const defaultRecs = {
       primary: {
         bed_id: 1,
@@ -281,7 +311,7 @@ export const api = {
         floor: '1st Floor',
         hospital_id: 1,
         score: 95,
-        match_reason: 'Optimal match for Critical triage, nearest to ER entrance, O2 equipment available.',
+        match_reason: `Optimal match for ${targetReq?.patient_name || 'Patient'} (${targetReq?.triage_level || 'Critical'}), nearest to ER entrance.`,
         missing_requirements: [],
         equipment: 'ECG, Defibrillator, O2',
         isolation_capable: false
@@ -314,6 +344,12 @@ export const api = {
   },
 
   reserveBed: async (bed_id: number, patient_id: number, emergency_request_id?: number): Promise<any> => {
+    const b = MOCK_BEDS.find(x => x.id === bed_id);
+    if (b) {
+      b.status = 'Reserved';
+      b.current_patient_id = patient_id;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/bed-reservations`, {
         method: 'POST',
@@ -327,6 +363,12 @@ export const api = {
   },
 
   confirmAdmission: async (patient_id: number, bed_id: number, attending_doctor?: string, notes?: string): Promise<any> => {
+    const b = MOCK_BEDS.find(x => x.id === bed_id);
+    if (b) {
+      b.status = 'Occupied';
+      b.current_patient_id = patient_id;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/admissions`, {
         method: 'POST',
@@ -340,6 +382,12 @@ export const api = {
   },
 
   processDischarge: async (patient_id: number, bed_id: number, discharge_type?: string, notes?: string): Promise<any> => {
+    const b = MOCK_BEDS.find(x => x.id === bed_id);
+    if (b) {
+      b.status = 'Under Cleaning';
+      b.current_patient_id = undefined;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/discharges`, {
         method: 'POST',
@@ -363,6 +411,12 @@ export const api = {
   },
 
   overrideSignal: async (signalId: number, current_status: string, emergency_mode: boolean): Promise<any> => {
+    const sig = MOCK_SIGNALS.find(x => x.id === signalId);
+    if (sig) {
+      sig.current_status = current_status as any;
+      sig.emergency_mode = emergency_mode ? 1 : 0;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/traffic-signals/${signalId}/override`, {
         method: 'PATCH',
@@ -371,11 +425,6 @@ export const api = {
       });
       return await handleResponse(res, { message: 'Signal overridden' });
     } catch {
-      const sig = MOCK_SIGNALS.find(x => x.id === signalId);
-      if (sig) {
-        sig.current_status = current_status as any;
-        sig.emergency_mode = emergency_mode ? 1 : 0;
-      }
       return { message: 'Signal overridden' };
     }
   },
@@ -395,11 +444,12 @@ export const api = {
 
   // Cleaning Workflow
   getBedsNeedingCleaning: async (): Promise<Bed[]> => {
+    const cleaning = MOCK_BEDS.filter(b => b.status === 'Under Cleaning');
     try {
       const res = await fetch(`${API_BASE}/cleaning/beds`);
-      return await handleResponse(res, [MOCK_BEDS[4]]);
+      return await handleResponse(res, cleaning);
     } catch {
-      return [MOCK_BEDS[4]];
+      return cleaning;
     }
   },
 
@@ -416,6 +466,11 @@ export const api = {
   },
 
   completeCleaning: async (bedId: number, notes?: string): Promise<any> => {
+    const b = MOCK_BEDS.find(x => x.id === bedId);
+    if (b) {
+      b.status = 'Available';
+    }
+
     try {
       const res = await fetch(`${API_BASE}/beds/${bedId}/complete-cleaning`, {
         method: 'POST',
@@ -431,17 +486,17 @@ export const api = {
   // Reports
   getAnalyticsSummary: async (): Promise<any> => {
     const defaultReports = {
-      totals: { hospitals: 2, ambulances: 3, patients: 12 },
+      totals: { hospitals: 2, ambulances: 3, patients: MOCK_REQUESTS.length },
       bedStats: [
-        { status: 'Available', count: 48 },
-        { status: 'Reserved', count: 4 },
-        { status: 'Occupied', count: 6 },
-        { status: 'Cleaning', count: 2 }
+        { status: 'Available', count: MOCK_BEDS.filter(b => b.status === 'Available').length },
+        { status: 'Reserved', count: MOCK_BEDS.filter(b => b.status === 'Reserved').length },
+        { status: 'Occupied', count: MOCK_BEDS.filter(b => b.status === 'Occupied').length },
+        { status: 'Cleaning', count: MOCK_BEDS.filter(b => b.status === 'Under Cleaning').length }
       ],
       triageStats: [
-        { triage_level: 'Critical/Red', count: 3 },
-        { triage_level: 'Urgent/Yellow', count: 5 },
-        { triage_level: 'Moderate/Green', count: 4 }
+        { triage_level: 'Critical/Red', count: MOCK_REQUESTS.filter(r => r.triage_level?.includes('Red')).length },
+        { triage_level: 'Urgent/Yellow', count: MOCK_REQUESTS.filter(r => r.triage_level?.includes('Yellow')).length },
+        { triage_level: 'Moderate/Green', count: MOCK_REQUESTS.filter(r => r.triage_level?.includes('Green')).length }
       ]
     };
 
