@@ -1,61 +1,70 @@
-# Smart Ambulance Tracking, Traffic Priority Simulation & Emergency Resource Management System
+# CareLink Smart Ambulance, Emergency Bed, and Ambulance Priority Signal Management System
+
+**CareLink Medical Center**  
+*Connected Care. Faster Response. Better Outcomes.*
 
 A full-stack, software-based solution connecting emergency ambulances, hospital emergency departments, doctors, ward managers, sanitization staff, and city traffic controllers into an integrated, real-time emergency healthcare ecosystem.
 
-> **Disclaimer**: This application is an educational prototype and decision-support simulation system. Automated bed recommendations and traffic signal overrides are for demonstration purposes and do not replace qualified medical professionals or official municipal traffic control authorities.
+> [!IMPORTANT]
+> **Traffic Signal Simulation — Demonstration Mode**  
+> *This software prototype simulates emergency traffic priority. It does not directly control real public traffic signals.*  
+>  
+> **Mandatory Disclaimer**:  
+> *This system is a software prototype for educational and demonstration purposes. It does not replace qualified medical professionals and does not directly control officially operated public traffic signals.*
 
 ---
 
-## 🌟 Key Features
+## 🌟 Key System Features
 
-1. **Ambulance Mobile Staff App**:
-   - Patient intake & emergency registration (Triage level, symptoms, equipment needed).
-   - Real-time GPS stream simulation along route waypoints.
-   - Interactive Leaflet route map & live ETA calculator.
-2. **Traffic Priority Simulation Module**:
-   - Automatic 500-meter proximity detection trigger via Haversine geofence formula.
-   - Emergency green-light priority override with visual ring animations and countdown timers.
-   - Traffic operator manual override (Force Green, Reset Red, Conflict Prevention).
-   - Complete signal priority event audit logging.
-3. **AI-Powered Bed Recommendation Engine**:
-   - Decision-support algorithm filtering & ranking beds based on triage level, equipment matching (Ventilators, Oxygen), isolation capability, floor proximity, and hospital capacity.
-   - Alternate hospital & ward suggestions when target hospital beds are at 100% capacity.
-4. **Complete Bed Status Flow**:
+1. **Ambulance Mobile Staff Web App**:
+   - Mobile-responsive interface designed for smartphones and tablets.
+   - Emergency patient intake registration (Triage level, symptoms, equipment requirements).
+   - Real-time browser Geolocation API (`navigator.geolocation.watchPosition`) + simulated waypoint movement fallback.
+   - Interactive Leaflet route map & live ETA calculation.
+2. **Traffic Priority Signal Simulation**:
+   - Virtual signal states: `NORMAL`, `PRIORITY_REQUESTED`, `APPROVED`, `AMBULANCE_PRIORITY_ACTIVE`, `RETURNING_TO_NORMAL`.
+   - Software-only simulation with automated 300m/500m radius Haversine distance geofence trigger.
+   - Traffic operator dashboard controls: Approve, Reject, Pause, and Manual Override.
+   - Configurable countdown timer, approach direction indicators (North, South, East, West), and full audit logging.
+3. **AI-Powered Bed Recommendation Scoring Engine**:
+   - Decision-support scoring algorithm ranking beds based on triage level, equipment matching (Ventilators, Oxygen), isolation capability, floor proximity, and ward capacity.
+   - Alternate hospital & bed recommendations when target ER capacity is at 100%.
+4. **Complete 5-Stage Bed Status Lifecycle**:
    - `Available` → `Reserved` → `Occupied` → `Under Cleaning` → `Available`
-   - Role-gated state transitions between hospital staff, doctors, and sanitization teams.
-5. **Hospital Emergency & Ward Dashboards**:
-   - Live incoming ambulance feed with Socket.IO alerts.
-   - One-click bed reservation & patient admission confirmation.
-   - Real-time color-coded ward matrix board.
+   - Extended bed statuses: `Out of Service`, `Maintenance`, `Blocked`, `Waiting for Inspection`.
+5. **Hospital Emergency & Ward Management**:
+   - Live incoming ambulance feed with Socket.IO alerts and toast notifications.
+   - One-click bed reservation and patient admission confirmation.
+   - Color-coded visual ward matrix board.
 6. **Doctor Clinical Portal & Sanitization Hub**:
-   - Doctor diagnosis & treatment recorder, discharge approval.
+   - Doctor diagnosis & treatment recorder, medical notes, discharge approval.
    - Mobile-friendly sanitization checklist for cleaning staff.
-7. **System Admin & Operational Analytics**:
+7. **System Administration & Analytics**:
    - User account management across all 7 pre-seeded roles.
-   - Recharts visual graphs for admissions by triage, bed occupancy, and exportable CSV reports.
+   - Recharts visual graphs for admissions by triage level, bed occupancy metrics, and exportable analytics reports.
 
 ---
 
-## 🔑 Pre-Seeded Demo Login Credentials
+## 👥 Main User Roles & Demo Credentials
 
-You can instantly switch between roles using the **Role Switcher** in the top navigation bar, or log in with these credentials (Password: `password123`):
+You can log in with any of these pre-seeded demo credentials (Password: `password123`) or switch roles instantly using the **Role Switcher** in the top navigation bar:
 
-| Role | Email | Purpose |
+| Role | Email | System Role & Purpose |
 | :--- | :--- | :--- |
-| **System Administrator** | `admin@hospital.com` | Master control, system metrics, user roles |
+| **Administrator** | `admin@hospital.com` | Master system control, analytics, user management |
 | **Ambulance Staff** | `ambulance@emergency.com` | Mobile patient intake, live GPS stream |
-| **Emergency Staff** | `emergency@hospital.com` | Incoming alerts, AI bed recommendation, reservation |
+| **Hospital Emergency Staff** | `emergency@hospital.com` | Incoming alerts, AI bed recommendation, reservation |
 | **Doctor** | `doctor@hospital.com` | Clinical diagnosis, treatment notes, discharge |
-| **Nurse / Ward Manager** | `nurse@hospital.com` | Ward matrix board, bed status changes |
-| **Cleaning Staff** | `cleaner@hospital.com` | Post-discharge sanitization workflow |
-| **Traffic Operator** | `traffic@city.gov` | Signal map, auto-green priority overrides |
+| **Nurse or Ward Manager** | `nurse@hospital.com` | Ward matrix board, bed status updates |
+| **Cleaning Staff** | `cleaner@hospital.com` | Post-discharge sanitization checklist |
+| **Traffic-Control Operator** | `traffic@city.gov` | Signal map, auto-green priority overrides |
 
 ---
 
 ## 🛠️ Technology Stack
 
-- **Backend**: Node.js, Express, TypeScript, Socket.IO, SQLite (`sqlite3` / `sqlite`), JWT, BcryptJS.
-- **Frontend**: Vite, React, TypeScript, Tailwind CSS, Leaflet (`leaflet`, `react-leaflet`), Recharts, Lucide Icons.
+- **Frontend**: React, TypeScript, Tailwind CSS, Leaflet (`react-leaflet`), Recharts, Lucide React icons.
+- **Backend**: Node.js, Express, TypeScript, Socket.IO, SQLite (`sqlite3` / `sqlite`), JWT Authentication, BcryptJS.
 - **Database**: Zero-config SQLite database (`database.sqlite`) pre-seeded with 2 Hospitals, Wards, Beds, Ambulances, Resources, Traffic Signals, and Staff.
 
 ---
@@ -82,7 +91,7 @@ npm run dev
 ```
 *Frontend application runs at: `http://localhost:3000`.*
 
-### 3. Run Automated Test Suite
+### 3. Run Automated Integration Test Suite
 ```bash
 cd backend
 npm test

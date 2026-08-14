@@ -15,7 +15,8 @@ import {
   MapPin,
   HeartPulse,
   ChevronRight,
-  PhoneCall
+  PhoneCall,
+  AlertTriangle
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -26,36 +27,36 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
   const features = [
     {
       title: 'Real-Time Ambulance Tracking',
-      description: 'Live GPS stream with route waypoints, speed telemetry, and instant ETA calculations transmitted directly to hospital ER.',
+      description: 'Live GPS stream via Geolocation API with route waypoints, speed telemetry, and instant ETA calculations transmitted directly to hospital ER.',
       icon: Truck,
       color: 'text-cyan-400 bg-cyan-950/80 border border-cyan-800'
     },
     {
       title: 'Emergency Bed Allocation',
-      description: 'Decision-support recommendation engine filtering ICU, Isolation, and Emergency beds by patient triage score & equipment needs.',
+      description: 'AI decision-support recommendation engine filtering ICU, Isolation, and Emergency beds by patient triage score & equipment needs.',
       icon: BedDouble,
       color: 'text-emerald-400 bg-emerald-950/80 border border-emerald-800'
     },
     {
       title: 'Hospital Resource Monitoring',
-      description: 'Track ICU beds, ventilators, medical oxygen cylinders, blood units, and wheelchairs with automated stock alerts.',
+      description: 'Track ICU beds, ventilators, medical oxygen cylinders, blood units, and wheelchairs with automated stock threshold meters.',
       icon: Package,
       color: 'text-amber-400 bg-amber-950/80 border border-amber-800'
     },
     {
       title: 'Traffic Priority Simulation',
-      description: 'Geofenced 500-meter proximity detection automatically granting green-light priority to approaching emergency response ambulances.',
+      description: 'Software-only geofenced 300m/500m proximity detection granting simulated green-light priority to approaching emergency ambulances.',
       icon: TrafficCone,
       color: 'text-purple-400 bg-purple-950/80 border border-purple-800'
     },
     {
-      title: 'Live WebSocket Notifications',
+      title: 'Live Socket.IO Broadcasts',
       description: 'Sub-second real-time alert broadcasts for incoming critical patients, bed reservations, and resource shortage warnings.',
       icon: Bell,
       color: 'text-rose-400 bg-rose-950/80 border border-rose-800'
     },
     {
-      title: 'Patient Admission Workflow',
+      title: 'Complete Bed Status Lifecycle',
       description: 'Streamlined state machine tracking bed status from Available → Reserved → Occupied → Under Cleaning → Available.',
       icon: CheckCircle2,
       color: 'text-teal-400 bg-teal-950/80 border border-teal-800'
@@ -71,10 +72,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
   ];
 
   const workflowSteps = [
-    { step: '01', title: 'Ambulance Intake', desc: 'Paramedics register patient & enable live GPS location sharing.' },
+    { step: '01', title: 'Ambulance Intake', desc: 'Paramedics register patient vitals & enable live GPS location sharing.' },
     { step: '02', title: 'Hospital Alerted', desc: 'Destination ER receives incoming notification & patient triage data.' },
     { step: '03', title: 'Bed Reserved', desc: 'AI algorithm recommends optimal bed; staff confirms reservation.' },
-    { step: '04', title: 'Traffic Priority', desc: 'Signals along route automatically trigger green light on approach.' },
+    { step: '04', title: 'Traffic Priority', desc: 'Operator approves simulated green signal priority along route.' },
     { step: '05', title: 'Patient Admitted', desc: 'Immediate ER admission; bed status transitions to Occupied.' }
   ];
 
@@ -87,7 +88,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
           <CareLinkLogo size="md" light />
 
           <div className="hidden md:flex items-center space-x-6 text-xs font-bold text-slate-300">
-            <button onClick={() => onNavigate('landing')} className="text-cyan-400">Home</button>
+            <button onClick={() => onNavigate('landing')} className="text-cyan-400 font-extrabold">Home</button>
             <button onClick={() => onNavigate('dashboard')} className="hover:text-cyan-400 transition-colors">Command Dashboard</button>
             <button onClick={() => onNavigate('ambulance')} className="hover:text-cyan-400 transition-colors">Ambulance GPS</button>
             <button onClick={() => onNavigate('hospital')} className="hover:text-cyan-400 transition-colors">Emergency ER</button>
@@ -105,8 +106,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
         </div>
       </header>
 
+      {/* Mandatory Software Simulation Disclaimer Banner */}
+      <div className="bg-amber-950/90 border-b border-amber-800/80 text-amber-200 px-4 py-2 text-xs font-semibold text-center flex items-center justify-center gap-2">
+        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+        <span>
+          <strong>Traffic Signal Simulation — Demonstration Mode</strong>: This software prototype simulates emergency traffic priority. It does not directly control real public traffic signals.
+        </span>
+      </div>
+
       {/* Hero Section with Healthcare Image & Dark Overlay */}
-      <section className="relative bg-slate-950 text-white overflow-hidden py-20 lg:py-28">
+      <section className="relative bg-slate-950 text-white overflow-hidden py-16 lg:py-24">
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-30"
           style={{
@@ -123,18 +132,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
               </span>
-              <span>Next-Gen Connected Emergency Platform</span>
+              <span>CareLink Medical Center • Connected Care. Faster Response. Better Outcomes.</span>
             </div>
 
             <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
-              Smart Emergency Care, <br />
-              <span className="bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 bg-clip-text text-transparent">
-                Connected in Real Time
-              </span>
+              CareLink Smart Ambulance, Emergency Bed & Priority Signal System
             </h1>
 
-            <p className="text-base sm:text-lg text-slate-300 leading-relaxed">
-              Coordinate ambulances, hospital emergency resources, critical care beds, and patient admissions through one unified decision-support platform.
+            <p className="text-base sm:text-lg text-slate-300 leading-relaxed font-medium">
+              A comprehensive software solution integrating ambulance registration, real-time GPS telemetry, hospital triage, AI bed recommendation, admission workflow, and traffic-priority signal simulation.
             </p>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
@@ -145,7 +151,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                 onClick={() => onNavigate('dashboard')}
                 className="bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold shadow-xl shadow-cyan-950"
               >
-                Open Emergency Dashboard
+                Open System Dashboard
               </Button>
 
               <Button
@@ -153,13 +159,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                 size="lg"
                 icon={<Truck className="w-5 h-5 text-cyan-400" />}
                 onClick={() => onNavigate('ambulance')}
-                className="border-slate-800 text-white hover:bg-slate-900"
+                className="border-slate-800 text-white hover:bg-slate-900 font-bold"
               >
-                Track Live Ambulance
+                Track Live Ambulance GPS
               </Button>
             </div>
 
-            {/* Quick Live Telemetry Strip */}
+            {/* Quick Telemetry Strip */}
             <div className="pt-8 border-t border-slate-800 grid grid-cols-3 gap-4 text-xs">
               <div>
                 <span className="text-slate-400 block">Response Time SLA</span>
@@ -167,11 +173,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               </div>
               <div>
                 <span className="text-slate-400 block">Signal Auto-Priority</span>
-                <span className="font-extrabold text-cyan-400 text-sm sm:text-base">500m Geofence</span>
+                <span className="font-extrabold text-cyan-400 text-sm sm:text-base">300m / 500m Radius</span>
               </div>
               <div>
-                <span className="text-slate-400 block">AI Bed Matching</span>
-                <span className="font-extrabold text-white text-sm sm:text-base">Instant Decision</span>
+                <span className="text-slate-400 block">AI Bed Allocation</span>
+                <span className="font-extrabold text-white text-sm sm:text-base">Instant Match</span>
               </div>
             </div>
 
@@ -193,12 +199,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* Feature Section */}
+      {/* Feature Capabilities Section */}
       <section className="py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div className="text-center max-w-2xl mx-auto space-y-3">
           <span className="text-xs uppercase font-extrabold text-cyan-400 tracking-widest">Platform Capabilities</span>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white">Comprehensive Emergency Infrastructure</h2>
-          <p className="text-xs sm:text-sm text-slate-400">CareLink Medical Center integrates every critical role into a synchronized digital workflow.</p>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white">CareLink Emergency Ecosystem</h2>
+          <p className="text-xs sm:text-sm text-slate-400">CareLink Medical Center integrates all 7 key user roles into one synchronized digital emergency workflow.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -237,17 +243,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* Trust, Security & Disclaimer Section */}
+      {/* Trust, Security & Mandatory Disclaimer Section */}
       <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-8 sm:p-12 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="space-y-4 max-w-2xl">
             <div className="inline-flex items-center gap-2 bg-emerald-950/80 border border-emerald-800 text-emerald-300 px-3 py-1 rounded-full text-xs font-bold">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>HIPAA Compliant Protocol & RBAC Authorization</span>
+              <span>JWT Authentication & Role-Based Access Control (RBAC)</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold">Built for Trust, Speed, and Patient Safety</h2>
+            <h2 className="text-2xl sm:text-3xl font-extrabold">Built for Speed, Reliability, and Patient Care</h2>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              CareLink Medical Center enforces strict role-based access control (RBAC), end-to-end audit logging, encrypted telemetry, and decision-support safeguards for medical professionals.
+              CareLink Medical Center enforces strict role-based access control, Socket.IO real-time telemetry, automated bed recommendation algorithms, and full audit logging for medical professionals.
             </p>
           </div>
 
@@ -280,8 +286,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
             <div>
               © 2026 CareLink Medical Center. Connected Care. Faster Response. Better Outcomes.
             </div>
-            <div className="bg-slate-900 px-3 py-1 rounded-lg border border-slate-800 text-slate-400">
-              ⚠️ <b>Educational Simulation Disclaimer</b>: Software prototype for demonstration. Decision-support only.
+            <div className="bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-slate-300 max-w-xl text-center">
+              ⚠️ <b>Educational Prototype Disclaimer</b>: This system is a software prototype for educational and demonstration purposes. It does not replace qualified medical professionals and does not directly control officially operated public traffic signals.
             </div>
           </div>
         </div>
