@@ -13,7 +13,10 @@ import {
   Bell,
   LogOut,
   FileCheck,
-  ChevronRight
+  ChevronRight,
+  Home,
+  UserCheck,
+  Settings
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -27,29 +30,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLog
 
   const sections = [
     {
-      title: 'MAIN OPERATIONS',
+      title: 'COMMAND CENTER',
       items: [
         { id: 'dashboard', label: 'Command Dashboard', icon: LayoutDashboard, roles: ['System Administrator', 'Emergency Hospital Staff', 'Doctor', 'Nurse or Ward Manager'] },
-        { id: 'ambulance', label: 'Ambulance Tracking', icon: Truck, roles: ['System Administrator', 'Ambulance Staff'] },
-        { id: 'hospital', label: 'Emergency ER & Beds', icon: Building2, roles: ['System Administrator', 'Emergency Hospital Staff'] },
-        { id: 'traffic', label: 'Traffic Simulation', icon: TrafficCone, roles: ['System Administrator', 'Traffic-Control Operator'] },
+        { id: 'ambulance', label: 'Ambulance GPS', icon: Truck, roles: ['System Administrator', 'Ambulance Staff'] },
+        { id: 'hospital', label: 'Emergency Patients', icon: Building2, roles: ['System Administrator', 'Emergency Hospital Staff'] },
+        { id: 'traffic', label: 'Traffic Control', icon: TrafficCone, roles: ['System Administrator', 'Traffic-Control Operator'] },
       ]
     },
     {
       title: 'PATIENT CARE WORKFLOW',
       items: [
-        { id: 'admissions', label: 'Intake & Admissions', icon: FileCheck, roles: ['System Administrator', 'Emergency Hospital Staff', 'Nurse or Ward Manager'] },
+        { id: 'admissions', label: 'Admissions & Intake', icon: FileCheck, roles: ['System Administrator', 'Emergency Hospital Staff', 'Nurse or Ward Manager'] },
         { id: 'doctor', label: 'Doctor Clinical Portal', icon: Stethoscope, roles: ['System Administrator', 'Doctor'] },
-        { id: 'wards', label: 'Bed Management Matrix', icon: Bed, roles: ['System Administrator', 'Emergency Hospital Staff', 'Nurse or Ward Manager'] },
-        { id: 'cleaning', label: 'Sanitization Tasks', icon: Sparkles, roles: ['System Administrator', 'Cleaning Staff', 'Nurse or Ward Manager'] },
+        { id: 'wards', label: 'Bed Management', icon: Bed, roles: ['System Administrator', 'Emergency Hospital Staff', 'Nurse or Ward Manager'] },
+        { id: 'cleaning', label: 'Cleaning Tasks', icon: Sparkles, roles: ['System Administrator', 'Cleaning Staff', 'Nurse or Ward Manager'] },
       ]
     },
     {
-      title: 'SYSTEM MANAGEMENT',
+      title: 'RESOURCE & ANALYTICS',
       items: [
-        { id: 'resources', label: 'Resource Inventory', icon: Package, roles: ['System Administrator', 'Emergency Hospital Staff', 'Doctor'] },
-        { id: 'notifications', label: 'Notification Center', icon: Bell, roles: ['System Administrator', 'Emergency Hospital Staff', 'Ambulance Staff'] },
-        { id: 'reports', label: 'Analytics & Reports', icon: BarChart3, roles: ['System Administrator', 'Emergency Hospital Staff'] },
+        { id: 'resources', label: 'Resource Management', icon: Package, roles: ['System Administrator', 'Emergency Hospital Staff', 'Doctor'] },
+        { id: 'notifications', label: 'Notifications', icon: Bell, roles: ['System Administrator', 'Emergency Hospital Staff', 'Ambulance Staff'] },
+        { id: 'reports', label: 'Reports & Analytics', icon: BarChart3, roles: ['System Administrator', 'Emergency Hospital Staff'] },
       ]
     }
   ];
@@ -76,12 +79,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLog
                   onClick={() => setActiveTab(item.id)}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all relative ${
                     isActive
-                      ? 'bg-blue-600/20 text-cyan-300 border-l-4 border-cyan-400 shadow-lg shadow-cyan-950/50'
+                      ? 'bg-cyan-950/80 text-cyan-300 border-l-4 border-cyan-400 shadow-lg shadow-cyan-950/50'
                       : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
                   }`}
                 >
                   <div className="flex items-center space-x-3">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-cyan-400' : 'text-slate-400'}`} />
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-cyan-400 animate-pulse' : 'text-slate-400'}`} />
                     <span>{item.label}</span>
                   </div>
 
@@ -97,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLog
           </div>
         ))}
 
-        <div className="pt-4 border-t border-slate-800">
+        <div className="pt-4 border-t border-slate-800 space-y-1">
           <button
             onClick={onLogout}
             className="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-extrabold text-rose-400 hover:bg-rose-950/40 transition-colors"

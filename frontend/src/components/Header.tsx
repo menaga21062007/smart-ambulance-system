@@ -60,8 +60,8 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="bg-slate-950/95 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50 px-4 py-2.5 shadow-xl">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+    <header className="bg-slate-950/95 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50 shadow-xl">
+      <div className="px-4 py-2.5 max-w-7xl mx-auto flex items-center justify-between gap-4">
         
         {/* Left: CareLink Logo */}
         <button onClick={onNavigateHome} className="focus:outline-none shrink-0">
@@ -247,6 +247,14 @@ export const Header: React.FC<HeaderProps> = ({
 
         </div>
 
+      </div>
+
+      {/* Persistent Amber Traffic Simulation Disclaimer Banner */}
+      <div className="bg-amber-950/95 border-t border-amber-800 px-4 py-1.5 text-center text-[11px] font-bold text-amber-200 flex items-center justify-center gap-2">
+        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+        <span>
+          <b>Traffic Signal Simulation — Demonstration Mode:</b> This software prototype simulates emergency traffic priority. It does not directly control real public traffic signals.
+        </span>
       </div>
     </header>
   );

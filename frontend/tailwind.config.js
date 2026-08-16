@@ -9,12 +9,26 @@ module.exports = {
     extend: {
       colors: {
         navy: {
-          950: '#060A12',
-          900: '#0B0F19',
-          800: '#111827',
-          700: '#1E293B',
-          600: '#334155',
-          500: '#475569',
+          950: '#071426',
+          900: '#0B1F3A',
+          800: '#11233B',
+          700: '#1A2F4C',
+          600: '#263F63',
+          500: '#3A567F',
+        },
+        carelink: {
+          deepnavy: '#071426',
+          navyblue: '#0B1F3A',
+          hospitalblue: '#1769AA',
+          brightblue: '#2188D9',
+          teal: '#00A6A6',
+          cyan: '#2BD9E8',
+          lightblue: '#EAF5FF',
+          gray: '#F4F7FA',
+          red: '#D32F2F',
+          orange: '#F57C00',
+          green: '#2E8B57',
+          purple: '#6C63FF',
         },
         hospital: {
           50: '#EAF5FF',
@@ -24,18 +38,13 @@ module.exports = {
           700: '#0B1F3A',
         },
         teal: {
-          500: '#06B6D4',
+          500: '#00A6A6',
+          400: '#2BD9E8',
         },
-        medical: {
-          bg: '#0B0F19',
-          card: '#111827',
-          border: '#1E293B',
-          text: '#F8FAFC',
-        },
-        emergencyred: '#F43F5E',
-        warningorange: '#F59E0B',
-        successgreen: '#10B981',
-        specialpurple: '#A855F7',
+        emergencyred: '#D32F2F',
+        warningorange: '#F57C00',
+        successgreen: '#2E8B57',
+        specialpurple: '#6C63FF',
       },
       keyframes: {
         fadeIn: {
@@ -47,8 +56,8 @@ module.exports = {
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         pulseGlow: {
-          '0%, 100%': { boxShadow: '0 0 15px rgba(6, 182, 212, 0.4)' },
-          '50%': { boxShadow: '0 0 25px rgba(6, 182, 212, 0.8)' },
+          '0%, 100%': { boxShadow: '0 0 15px rgba(43, 217, 232, 0.4)' },
+          '50%': { boxShadow: '0 0 25px rgba(43, 217, 232, 0.8)' },
         },
         radarSpin: {
           '0%': { transform: 'rotate(0deg)' },

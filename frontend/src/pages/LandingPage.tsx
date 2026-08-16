@@ -26,7 +26,7 @@ interface LandingPageProps {
 export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
   const features = [
     {
-      title: 'Real-Time Ambulance Tracking',
+      title: 'Real-Time Ambulance GPS',
       description: 'Live GPS stream via Geolocation API with route waypoints, speed telemetry, and instant ETA calculations transmitted directly to hospital ER.',
       icon: Truck,
       color: 'text-cyan-400 bg-cyan-950/80 border border-cyan-800'
@@ -44,19 +44,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
       color: 'text-amber-400 bg-amber-950/80 border border-amber-800'
     },
     {
-      title: 'Traffic Priority Simulation',
-      description: 'Software-only geofenced 300m/500m proximity detection granting simulated green-light priority to approaching emergency ambulances.',
+      title: 'Automatic Signal-Priority Simulation',
+      description: 'Software-only geofenced 300m/250m proximity detection granting simulated green-light priority to approaching emergency ambulances.',
       icon: TrafficCone,
       color: 'text-purple-400 bg-purple-950/80 border border-purple-800'
     },
     {
-      title: 'Live Socket.IO Broadcasts',
+      title: 'Live Emergency Notifications',
       description: 'Sub-second real-time alert broadcasts for incoming critical patients, bed reservations, and resource shortage warnings.',
       icon: Bell,
       color: 'text-rose-400 bg-rose-950/80 border border-rose-800'
     },
     {
-      title: 'Complete Bed Status Lifecycle',
+      title: 'Patient Admission Workflow',
       description: 'Streamlined state machine tracking bed status from Available → Reserved → Occupied → Under Cleaning → Available.',
       icon: CheckCircle2,
       color: 'text-teal-400 bg-teal-950/80 border border-teal-800'
@@ -72,11 +72,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
   ];
 
   const workflowSteps = [
-    { step: '01', title: 'Ambulance Intake', desc: 'Paramedics register patient vitals & enable live GPS location sharing.' },
-    { step: '02', title: 'Hospital Alerted', desc: 'Destination ER receives incoming notification & patient triage data.' },
-    { step: '03', title: 'Bed Reserved', desc: 'AI algorithm recommends optimal bed; staff confirms reservation.' },
-    { step: '04', title: 'Traffic Priority', desc: 'Operator approves simulated green signal priority along route.' },
-    { step: '05', title: 'Patient Admitted', desc: 'Immediate ER admission; bed status transitions to Occupied.' }
+    { step: '01', title: 'Ambulance Registered', desc: 'Paramedics register patient vitals & enable live GPS location sharing.' },
+    { step: '02', title: 'GPS Shared', desc: 'Real-time telemetry stream transmits speed, accuracy, and heading.' },
+    { step: '03', title: 'Hospital Notified', desc: 'Destination ER receives incoming notification & patient triage data.' },
+    { step: '04', title: 'Bed Reserved', desc: 'AI algorithm recommends optimal bed; staff confirms reservation.' },
+    { step: '05', title: 'Simulated Signal Priority', desc: 'Software decision engine auto-activates simulated green priority corridor.' },
+    { step: '06', title: 'Patient Admitted', desc: 'Immediate ER admission; bed status transitions to Occupied.' }
   ];
 
   return (
@@ -140,7 +141,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
             </h1>
 
             <p className="text-base sm:text-lg text-slate-300 leading-relaxed font-medium">
-              A comprehensive software solution integrating ambulance registration, real-time GPS telemetry, hospital triage, AI bed recommendation, admission workflow, and traffic-priority signal simulation.
+              Coordinate ambulance GPS, emergency beds, hospital resources, and simulated traffic priority through one connected platform.
             </p>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
@@ -151,7 +152,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                 onClick={() => onNavigate('dashboard')}
                 className="bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold shadow-xl shadow-cyan-950"
               >
-                Open System Dashboard
+                Open ER Dashboard
               </Button>
 
               <Button
@@ -161,7 +162,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                 onClick={() => onNavigate('ambulance')}
                 className="border-slate-800 text-white hover:bg-slate-900 font-bold"
               >
-                Track Live Ambulance GPS
+                Track Ambulance
+              </Button>
+
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => onNavigate('hospital')}
+                className="border-slate-800 text-slate-300 hover:bg-slate-900 font-bold"
+              >
+                Explore System
               </Button>
             </div>
 
@@ -173,7 +183,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               </div>
               <div>
                 <span className="text-slate-400 block">Signal Auto-Priority</span>
-                <span className="font-extrabold text-cyan-400 text-sm sm:text-base">300m / 500m Radius</span>
+                <span className="font-extrabold text-cyan-400 text-sm sm:text-base">300m / 250m Radius</span>
               </div>
               <div>
                 <span className="text-slate-400 block">AI Bed Allocation</span>
@@ -231,12 +241,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white">Seamless Emergency Patient Journey</h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
             {workflowSteps.map((ws, idx) => (
-              <div key={idx} className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 relative shadow-lg">
+              <div key={idx} className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 relative shadow-lg">
                 <span className="text-2xl font-extrabold text-cyan-400 opacity-40 block mb-2">{ws.step}</span>
-                <h4 className="font-extrabold text-sm text-white mb-1">{ws.title}</h4>
-                <p className="text-xs text-slate-400">{ws.desc}</p>
+                <h4 className="font-extrabold text-xs text-white mb-1">{ws.title}</h4>
+                <p className="text-[11px] text-slate-400">{ws.desc}</p>
               </div>
             ))}
           </div>
