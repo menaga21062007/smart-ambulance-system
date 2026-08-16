@@ -24,58 +24,72 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [alerts, setAlerts] = useState<ToastAlert[]>([]);
 
   useEffect(() => {
-    const s = io(window.location.origin, {
-      transports: ['websocket', 'polling']
+    const metaEnv = (import.meta as any).env || {};
+    const socketUrl = metaEnv.VITE_SOCKET_URL || window.location.origin;
+
+    const s = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 3,
+      timeout: 5000
     });
 
-    s.on('connect', () => {
+    const handleConnect = () => {
       console.log('Realtime socket connected:', s.id);
       setConnected(true);
-    });
+    };
 
-    s.on('disconnect', () => {
+    const handleDisconnect = () => {
       setConnected(false);
-    });
+    };
 
-    // Realtime Emergency Incoming Alert
-    s.on('incoming_emergency_alert', (data: any) => {
+    const handleIncomingEmergency = (data: any) => {
       addToast({
         type: 'emergency',
         title: `🚨 INCOMING EMERGENCY: ${data.triage_level || 'Urgent'}`,
-        message: `Ambulance approaching ${data.hospital_name || 'Hospital'}. Patient: ${data.patient_name}. ETA: ${data.eta} mins.`
+        message: `Ambulance approaching ${data.hospital_name || 'Hospital'}. Patient: ${data.patient_name || 'Patient'}. ETA: ${data.eta || 12} mins.`
       });
-    });
+    };
 
-    // Traffic priority alert
-    s.on('traffic_priority_triggered', (data: any) => {
+    const handleTrafficPriority = (data: any) => {
       addToast({
         type: 'traffic',
-        title: '🚥 TRAFFIC PRIORITY ACTIVATED',
-        message: `Emergency Green Priority triggered for ${data.signals?.length || 1} traffic signal(s) along ambulance route.`
+        title: '🚥 AUTOMATED TRAFFIC PRIORITY ACTIVATED',
+        message: `Emergency Entry Priority auto-activated for ${data.signalName || 'MG Road Junction'} (${data.direction || 'North'} Bound).`
       });
-    });
+    };
 
-    // Bed Reservation Alert
-    s.on('bed_reserved', (data: any) => {
+    const handleBedReserved = (data: any) => {
       addToast({
         type: 'bed',
         title: '🛏️ BED RESERVED',
-        message: `Bed ${data.bed_number} successfully reserved for Patient #${data.patient_id}.`
+        message: `Bed ${data.bed_number || 'ER-101'} successfully reserved for Patient #${data.patient_id || 101}.`
       });
-    });
+    };
 
-    // Resource Alert
-    s.on('resource_alert', (data: any) => {
+    const handleResourceAlert = (data: any) => {
       addToast({
         type: 'resource',
         title: `⚠️ ${data.title}`,
         message: data.message
       });
-    });
+    };
+
+    s.on('connect', handleConnect);
+    s.on('disconnect', handleDisconnect);
+    s.on('incoming_emergency_alert', handleIncomingEmergency);
+    s.on('signal-status-changed', handleTrafficPriority);
+    s.on('bed_reserved', handleBedReserved);
+    s.on('resource_alert', handleResourceAlert);
 
     setSocket(s);
 
     return () => {
+      s.off('connect', handleConnect);
+      s.off('disconnect', handleDisconnect);
+      s.off('incoming_emergency_alert', handleIncomingEmergency);
+      s.off('signal-status-changed', handleTrafficPriority);
+      s.off('bed_reserved', handleBedReserved);
+      s.off('resource_alert', handleResourceAlert);
       s.disconnect();
     };
   }, []);
@@ -86,7 +100,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       id: Math.random().toString(36).substring(2, 9),
       timestamp: new Date().toLocaleTimeString()
     };
-    setAlerts((prev) => [newToast, ...prev].slice(0, 5)); // Keep latest 5
+    setAlerts((prev) => [newToast, ...prev].slice(0, 5));
   };
 
   const removeAlert = (id: string) => {

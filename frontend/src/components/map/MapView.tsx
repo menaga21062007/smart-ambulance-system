@@ -5,6 +5,7 @@ import { Hospital, TrafficSignal } from '../../types';
 import { MapControls } from './MapControls';
 import { GPSStatusPanel } from './GPSStatusPanel';
 import { SignalPriorityOverlay } from './SignalPriorityOverlay';
+import { MapErrorState } from './MapErrorState';
 
 // Custom Marker Icons
 const ambulanceIcon = L.divIcon({
@@ -74,20 +75,34 @@ export const MapView: React.FC<MapViewProps> = ({
   const [showSignals, setShowSignals] = useState(true);
   const [showRoute, setShowRoute] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [tileError, setTileError] = useState(false);
+
+  // Validate coordinates
+  const isValidCoords = (lat: number, lng: number) =>
+    typeof lat === 'number' && typeof lng === 'number' && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
 
   // Initialize Map Once
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
+    const initialLat = isValidCoords(ambulancePosition.lat, ambulancePosition.lng) ? ambulancePosition.lat : 12.9650;
+    const initialLng = isValidCoords(ambulancePosition.lat, ambulancePosition.lng) ? ambulancePosition.lng : 77.5880;
+
     const map = L.map(mapContainerRef.current, {
-      center: [12.9650, 77.5880],
+      center: [initialLat, initialLng],
       zoom: 13,
       zoomControl: false
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+    });
+
+    tiles.on('tileerror', () => {
+      setTileError(true);
+    });
+
+    tiles.addTo(map);
 
     mapInstanceRef.current = map;
 
@@ -120,7 +135,7 @@ export const MapView: React.FC<MapViewProps> = ({
     }
 
     // Ambulance Marker
-    if (ambulancePosition) {
+    if (ambulancePosition && isValidCoords(ambulancePosition.lat, ambulancePosition.lng)) {
       const ambMarker = L.marker([ambulancePosition.lat, ambulancePosition.lng], { icon: ambulanceIcon })
         .addTo(map)
         .bindPopup(`
@@ -136,37 +151,41 @@ export const MapView: React.FC<MapViewProps> = ({
 
     // Hospital Markers
     hospitals.forEach((h) => {
-      const hMarker = L.marker([h.latitude, h.longitude], { icon: hospitalIcon })
-        .addTo(map)
-        .bindPopup(`
-          <div class="p-1 space-y-1">
-            <h4 class="font-extrabold text-rose-400 text-xs">${h.name}</h4>
-            <p class="text-[11px] text-slate-300">${h.address}</p>
-            <div class="text-[10px] text-emerald-400 font-bold">Emergency Capacity: ${h.emergency_capacity || 50} beds</div>
-          </div>
-        `);
-      markersRef.current[`hospital_${h.id}`] = hMarker;
+      if (isValidCoords(h.latitude, h.longitude)) {
+        const hMarker = L.marker([h.latitude, h.longitude], { icon: hospitalIcon })
+          .addTo(map)
+          .bindPopup(`
+            <div class="p-1 space-y-1">
+              <h4 class="font-extrabold text-rose-400 text-xs">${h.name}</h4>
+              <p class="text-[11px] text-slate-300">${h.address}</p>
+              <div class="text-[10px] text-emerald-400 font-bold">Emergency Capacity: ${h.emergency_capacity || 50} beds</div>
+            </div>
+          `);
+        markersRef.current[`hospital_${h.id}`] = hMarker;
+      }
     });
 
     // Traffic Signal Markers
     if (showSignals) {
       trafficSignals.forEach((s) => {
-        const isPrio = Boolean(s.emergency_mode || s.current_status === 'GREEN');
-        const sMarker = L.marker([s.latitude, s.longitude], { icon: getSignalIcon(s.current_status, isPrio) })
-          .addTo(map)
-          .bindPopup(`
-            <div class="p-1 space-y-1">
-              <h4 class="font-extrabold text-purple-400 text-xs">${s.name}</h4>
-              <p class="text-[11px] text-slate-300">Status: <b class="${isPrio ? 'text-emerald-400' : 'text-rose-400'}">${s.current_status}</b></p>
-              <div class="text-[10px] text-slate-400">Software-only Simulation Signal</div>
-            </div>
-          `);
-        markersRef.current[`signal_${s.id}`] = sMarker;
+        if (isValidCoords(s.latitude, s.longitude)) {
+          const isPrio = Boolean(s.emergency_mode || s.current_status === 'GREEN');
+          const sMarker = L.marker([s.latitude, s.longitude], { icon: getSignalIcon(s.current_status, isPrio) })
+            .addTo(map)
+            .bindPopup(`
+              <div class="p-1 space-y-1">
+                <h4 class="font-extrabold text-purple-400 text-xs">${s.name}</h4>
+                <p class="text-[11px] text-slate-300">Status: <b class="${isPrio ? 'text-emerald-400' : 'text-rose-400'}">${s.current_status}</b></p>
+                <div class="text-[10px] text-slate-400">Software-only Simulation Signal</div>
+              </div>
+            `);
+          markersRef.current[`signal_${s.id}`] = sMarker;
+        }
       });
     }
 
     // Draw Route Polyline
-    if (showRoute && ambulancePosition && hospitals.length > 0) {
+    if (showRoute && ambulancePosition && isValidCoords(ambulancePosition.lat, ambulancePosition.lng) && hospitals.length > 0) {
       const routePoints: [number, number][] = [
         [ambulancePosition.lat, ambulancePosition.lng],
         [12.9630, 77.5850],
@@ -186,7 +205,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Controls Handlers
   const handleCenterAmbulance = () => {
-    if (mapInstanceRef.current && ambulancePosition) {
+    if (mapInstanceRef.current && ambulancePosition && isValidCoords(ambulancePosition.lat, ambulancePosition.lng)) {
       mapInstanceRef.current.setView([ambulancePosition.lat, ambulancePosition.lng], 15);
     }
   };
@@ -206,8 +225,8 @@ export const MapView: React.FC<MapViewProps> = ({
   };
 
   return (
-    <div className={`relative w-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 transition-all ${
-      isFullscreen ? 'fixed inset-0 z-50 rounded-none h-screen' : 'h-[460px]'
+    <div className={`map-container rounded-2xl bg-slate-950 border border-slate-800 transition-all ${
+      isFullscreen ? 'fixed inset-0 z-50 rounded-none h-screen min-h-screen' : ''
     }`}>
       {/* Map Element */}
       <div ref={mapContainerRef} className="w-full h-full z-10" />
@@ -242,6 +261,15 @@ export const MapView: React.FC<MapViewProps> = ({
           signalName={activePrioritySignal.name}
           countdown={activePrioritySignal.countdown}
           direction={activePrioritySignal.direction}
+        />
+      )}
+
+      {/* Tile Loading Error Overlay */}
+      {tileError && (
+        <MapErrorState
+          type="TILE_FAILURE"
+          onRetry={() => setTileError(false)}
+          onUseFallback={handleCenterAmbulance}
         />
       )}
     </div>

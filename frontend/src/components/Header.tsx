@@ -11,7 +11,8 @@ import {
   Clock as ClockIcon,
   LogOut,
   Search,
-  Activity
+  Activity,
+  AlertTriangle
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -57,7 +58,7 @@ export const Header: React.FC<HeaderProps> = ({
           <CareLinkLogo size="md" light />
         </button>
 
-        {/* Center: Search Input & Hospital Operational Status */}
+        {/* Center: Search Input & Hospital Operational / Fallback Status */}
         <div className="hidden md:flex items-center space-x-4 flex-1 max-w-lg">
           <div className="relative w-full">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -70,13 +71,20 @@ export const Header: React.FC<HeaderProps> = ({
             />
           </div>
 
-          <div className="hidden lg:flex items-center gap-1.5 bg-emerald-950/60 border border-emerald-800 text-emerald-300 px-3 py-1 rounded-full text-xs font-extrabold shrink-0">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-            </span>
-            <span>City General ER • Operational</span>
-          </div>
+          {connected ? (
+            <div className="hidden lg:flex items-center gap-1.5 bg-emerald-950/60 border border-emerald-800 text-emerald-300 px-3 py-1 rounded-full text-xs font-extrabold shrink-0">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+              </span>
+              <span>City General ER • Live Connected</span>
+            </div>
+          ) : (
+            <div className="hidden lg:flex items-center gap-1.5 bg-amber-950/80 border border-amber-800 text-amber-300 px-3 py-1 rounded-full text-[11px] font-extrabold shrink-0">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>Live backend unavailable — showing demonstration data.</span>
+            </div>
+          )}
         </div>
 
         {/* Right: Clock, Notifications & Role Switcher */}

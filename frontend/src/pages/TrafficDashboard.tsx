@@ -23,8 +23,16 @@ import {
   RefreshCw,
   ShieldCheck,
   Zap,
-  Filter
+  Activity,
+  History
 } from 'lucide-react';
+
+interface EventTimelineItem {
+  id: string;
+  time: string;
+  event: string;
+  status: 'info' | 'success' | 'warning' | 'active';
+}
 
 export const TrafficDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -33,7 +41,6 @@ export const TrafficDashboard: React.FC = () => {
   const [signals, setSignals] = useState<TrafficSignal[]>([]);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [history, setHistory] = useState<any[]>([]);
-  const [requests, setRequests] = useState<any[]>([]);
   const [activeAmbulancePos] = useState({ lat: 12.9650, lng: 77.5880, vehicle_number: 'AMB-MED-101', speed: 48, accuracy: 12 });
   const [actionMsg, setActionMsg] = useState('');
 
@@ -45,8 +52,14 @@ export const TrafficDashboard: React.FC = () => {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
-  // Tabs for Monitoring View
-  const [activeFilter, setActiveFilter] = useState<'ALL' | 'ACTIVE' | 'BLOCKED' | 'QUEUED'>('ALL');
+  // Live Event Timeline
+  const [timelineEvents, setTimelineEvents] = useState<EventTimelineItem[]>([
+    { id: '1', time: '14:45:02', event: 'Ambulance #AMB-MED-101 detected within 300m radius', status: 'info' },
+    { id: '2', time: '14:45:03', event: 'GPS validated (Accuracy: ±12m, Heading: North Bound)', status: 'info' },
+    { id: '3', time: '14:45:03', event: 'Automatic Priority Activated for MG Road Junction', status: 'active' },
+    { id: '4', time: '14:45:28', event: 'Ambulance passed signal #SIG-101', status: 'success' },
+    { id: '5', time: '14:45:33', event: 'Signal returned to NORMAL cycle', status: 'info' }
+  ]);
 
   useEffect(() => {
     async function loadData() {
@@ -72,7 +85,11 @@ export const TrafficDashboard: React.FC = () => {
         setCountdown((prev) => {
           if (prev <= 1) {
             setPriorityState('RETURNING_TO_NORMAL');
-            setTimeout(() => setPriorityState('NORMAL'), 3000);
+            addTimelineEvent('Ambulance passed signal #SIG-101', 'success');
+            setTimeout(() => {
+              setPriorityState('NORMAL');
+              addTimelineEvent('Signal returned to NORMAL cycle', 'info');
+            }, 3000);
             return 0;
           }
           return prev - 1;
@@ -82,12 +99,24 @@ export const TrafficDashboard: React.FC = () => {
     return () => clearInterval(interval);
   }, [priorityState, isPaused, countdown]);
 
+  const addTimelineEvent = (eventText: string, status: 'info' | 'success' | 'warning' | 'active') => {
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    const newEv: EventTimelineItem = {
+      id: Math.random().toString(36).substring(2, 9),
+      time: timeStr,
+      event: eventText,
+      status
+    };
+    setTimelineEvents((prev) => [newEv, ...prev].slice(0, 8));
+  };
+
   const handleManualOverride = async (signalId: number, status: 'GREEN' | 'RED', emergencyMode: boolean) => {
     setActionMsg('');
     try {
       await api.overrideSignal(signalId, status, emergencyMode);
       setPriorityState(emergencyMode ? 'AMBULANCE_PRIORITY_ACTIVE' : 'NORMAL');
       setActionMsg(`Traffic Signal #${signalId} overridden to ${status} (Manual Override Mode: ${emergencyMode ? 'ON' : 'OFF'})`);
+      addTimelineEvent(`Manual Override: Signal #${signalId} forced to ${status}`, 'warning');
       
       const s = await api.getTrafficSignals();
       setSignals(s);
@@ -105,6 +134,7 @@ export const TrafficDashboard: React.FC = () => {
       await api.resetMapDemoData();
       setPriorityState('NORMAL');
       setActionMsg('Map Demonstration Data reset successfully! Signal requests & demo routes reseeded.');
+      addTimelineEvent('Administrator reset map demonstration data', 'warning');
       setIsResetModalOpen(false);
 
       const s = await api.getTrafficSignals();
@@ -183,7 +213,7 @@ export const TrafficDashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Reusable Leaflet Map (7 Cols) */}
-        <div className="lg:col-span-7">
+        <div className="lg:col-span-7 space-y-4">
           <MapView
             hospitals={hospitals}
             trafficSignals={signals}
@@ -194,6 +224,34 @@ export const TrafficDashboard: React.FC = () => {
                 : null
             }
           />
+
+          {/* Real-time Event Timeline Component */}
+          <Card className="space-y-3">
+            <h3 className="text-xs font-extrabold text-white uppercase flex items-center gap-2">
+              <History className="w-4 h-4 text-cyan-400" /> Live Signal Event Timeline
+            </h3>
+
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {timelineEvents.map((te) => (
+                <div
+                  key={te.id}
+                  className={`p-2.5 rounded-xl border text-xs flex items-center justify-between font-mono ${
+                    te.status === 'active'
+                      ? 'bg-cyan-950/60 border-cyan-800 text-cyan-300 animate-pulse'
+                      : te.status === 'success'
+                      ? 'bg-emerald-950/60 border-emerald-800 text-emerald-300'
+                      : te.status === 'warning'
+                      ? 'bg-amber-950/60 border-amber-800 text-amber-300'
+                      : 'bg-slate-950 border-slate-800 text-slate-300'
+                  }`}
+                >
+                  <span className="font-bold text-[11px] text-slate-400 shrink-0 mr-3">{te.time}</span>
+                  <span className="font-medium text-slate-200 flex-1 truncate">{te.event}</span>
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 ml-2 shrink-0"></span>
+                </div>
+              ))}
+            </div>
+          </Card>
         </div>
 
         {/* Automatic Monitoring & Controls (5 Cols) */}

@@ -20,6 +20,15 @@
   }
 }
 
+/* Fixed Height Map Container */
+.map-container {
+  width: 100%;
+  height: 550px;
+  min-height: 400px;
+  position: relative;
+  overflow: hidden;
+}
+
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
