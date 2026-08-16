@@ -189,7 +189,43 @@ export async function initializeSchema() {
       normal_cycle TEXT DEFAULT 'AUTO_60S',
       current_status TEXT DEFAULT 'RED',
       emergency_mode INTEGER DEFAULT 0,
+      approach_directions TEXT DEFAULT 'North,South,East,West',
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS ambulance_locations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ambulance_id INTEGER NOT NULL,
+      emergency_request_id INTEGER,
+      latitude REAL NOT NULL,
+      longitude REAL NOT NULL,
+      accuracy REAL,
+      speed REAL,
+      heading REAL,
+      recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (ambulance_id) REFERENCES ambulances(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS ambulance_signal_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ambulance_id INTEGER NOT NULL,
+      emergency_request_id INTEGER,
+      traffic_signal_id INTEGER NOT NULL,
+      distance_in_meters REAL,
+      approach_direction TEXT DEFAULT 'North',
+      patient_priority TEXT DEFAULT 'Critical/Red',
+      gps_accuracy REAL,
+      status TEXT DEFAULT 'DETECTED',
+      auto_approval_reason TEXT,
+      validation_result TEXT,
+      requested_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      activated_at DATETIME,
+      completed_at DATETIME,
+      cancelled_at DATETIME,
+      safety_block_reason TEXT,
+      override_reason TEXT,
+      FOREIGN KEY (ambulance_id) REFERENCES ambulances(id),
+      FOREIGN KEY (traffic_signal_id) REFERENCES traffic_signals(id)
     );
 
     CREATE TABLE IF NOT EXISTS signal_priority_events (

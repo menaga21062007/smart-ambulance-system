@@ -1,24 +1,52 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { LeafletMap } from '../components/LeafletMap';
+import { MapView } from '../components/map/MapView';
 import { TrafficSignal, Hospital } from '../types';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { TrafficCone, ShieldAlert, CheckCircle2, XCircle, Clock, Radio, Play, Pause, AlertTriangle, ArrowUpRight, Check, X } from 'lucide-react';
+import { ResetMapDemoModal } from '../components/ResetMapDemoModal';
+import { useAuth } from '../context/AuthContext';
+import {
+  TrafficCone,
+  ShieldAlert,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Radio,
+  Play,
+  Pause,
+  AlertTriangle,
+  ArrowUpRight,
+  Check,
+  X,
+  RefreshCw,
+  ShieldCheck,
+  Zap,
+  Filter
+} from 'lucide-react';
 
 export const TrafficDashboard: React.FC = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role_name === 'System Administrator';
+
   const [signals, setSignals] = useState<TrafficSignal[]>([]);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [history, setHistory] = useState<any[]>([]);
-  const [activeAmbulancePos] = useState({ lat: 12.9650, lng: 77.5880 });
+  const [requests, setRequests] = useState<any[]>([]);
+  const [activeAmbulancePos] = useState({ lat: 12.9650, lng: 77.5880, vehicle_number: 'AMB-MED-101', speed: 48, accuracy: 12 });
   const [actionMsg, setActionMsg] = useState('');
 
-  // Priority Signal Simulation State
-  const [priorityState, setPriorityState] = useState<'NORMAL' | 'PRIORITY_REQUESTED' | 'APPROVED' | 'AMBULANCE_PRIORITY_ACTIVE' | 'RETURNING_TO_NORMAL'>('AMBULANCE_PRIORITY_ACTIVE');
+  // Priority Signal State
+  const [priorityState, setPriorityState] = useState<'NORMAL' | 'AMBULANCE_DETECTED' | 'VALIDATING' | 'AUTO_APPROVED' | 'AMBULANCE_PRIORITY_ACTIVE' | 'RETURNING_TO_NORMAL'>('AMBULANCE_PRIORITY_ACTIVE');
   const [approachDirection, setApproachDirection] = useState<'North' | 'South' | 'East' | 'West'>('North');
-  const [countdown, setCountdown] = useState<number>(30);
+  const [countdown, setCountdown] = useState<number>(28);
   const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
+  // Tabs for Monitoring View
+  const [activeFilter, setActiveFilter] = useState<'ALL' | 'ACTIVE' | 'BLOCKED' | 'QUEUED'>('ALL');
 
   useEffect(() => {
     async function loadData() {
@@ -54,29 +82,12 @@ export const TrafficDashboard: React.FC = () => {
     return () => clearInterval(interval);
   }, [priorityState, isPaused, countdown]);
 
-  const handleApprove = () => {
-    setPriorityState('AMBULANCE_PRIORITY_ACTIVE');
-    setCountdown(30);
-    setIsPaused(false);
-    setActionMsg('Priority Request APPROVED by Traffic Operator! "Ambulance Entry Priority" signal active.');
-  };
-
-  const handleReject = () => {
-    setPriorityState('NORMAL');
-    setActionMsg('Priority Request REJECTED by Traffic Operator. Normal signal cycle restored.');
-  };
-
-  const handlePause = () => {
-    setIsPaused(!isPaused);
-    setActionMsg(isPaused ? 'Signal Priority Resumed.' : 'Signal Priority Paused.');
-  };
-
   const handleManualOverride = async (signalId: number, status: 'GREEN' | 'RED', emergencyMode: boolean) => {
     setActionMsg('');
     try {
       await api.overrideSignal(signalId, status, emergencyMode);
       setPriorityState(emergencyMode ? 'AMBULANCE_PRIORITY_ACTIVE' : 'NORMAL');
-      setActionMsg(`Traffic Signal #${signalId} overridden to ${status} (Emergency Mode: ${emergencyMode ? 'ON' : 'OFF'})`);
+      setActionMsg(`Traffic Signal #${signalId} overridden to ${status} (Manual Override Mode: ${emergencyMode ? 'ON' : 'OFF'})`);
       
       const s = await api.getTrafficSignals();
       setSignals(s);
@@ -87,10 +98,30 @@ export const TrafficDashboard: React.FC = () => {
     }
   };
 
+  const handleConfirmResetMap = async () => {
+    setIsResetting(true);
+    setActionMsg('');
+    try {
+      await api.resetMapDemoData();
+      setPriorityState('NORMAL');
+      setActionMsg('Map Demonstration Data reset successfully! Signal requests & demo routes reseeded.');
+      setIsResetModalOpen(false);
+
+      const s = await api.getTrafficSignals();
+      setSignals(s);
+      const hist = await api.getSignalHistory();
+      setHistory(hist);
+    } catch (err: any) {
+      setActionMsg(`Reset Error: ${err.message}`);
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       
-      {/* Prominent Warning Banner 1 */}
+      {/* Prominent Mandatory Simulation Disclaimer Banner */}
       <div className="bg-amber-950/90 border border-amber-800 p-4 rounded-2xl text-amber-200 text-xs font-bold flex items-center justify-between gap-4 shadow-xl">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-amber-900/80 rounded-xl text-amber-400">
@@ -104,7 +135,17 @@ export const TrafficDashboard: React.FC = () => {
           </div>
         </div>
 
-        <Badge status="Available" pulse>Simulated Mode</Badge>
+        {isAdmin && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsResetModalOpen(true)}
+            className="border-amber-700 text-amber-300 hover:bg-amber-900/50 text-xs font-extrabold flex items-center gap-1.5 shrink-0"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Reset Map Demo Data</span>
+          </Button>
+        )}
       </div>
 
       {/* Header Card */}
@@ -115,27 +156,18 @@ export const TrafficDashboard: React.FC = () => {
           </div>
           <div>
             <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
-              Traffic Priority Signal Controller
+              Automated Signal Priority Monitoring
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
             </h2>
-            <p className="text-xs text-slate-400">Software-only geofence trigger • Haversine 300m/500m proximity matrix</p>
+            <p className="text-xs text-slate-400">Automatic software decision engine • GPS Validation & Proximity Matrix</p>
           </div>
         </div>
 
-        {/* Direction Switcher & Mode Indicator */}
+        {/* Direction Indicator & Auto Status */}
         <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-1 text-xs font-bold text-slate-300 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
-            <span className="text-slate-400">Approach:</span>
-            <select
-              value={approachDirection}
-              onChange={(e) => setApproachDirection(e.target.value as any)}
-              className="bg-transparent text-cyan-400 font-extrabold focus:outline-none cursor-pointer"
-            >
-              <option value="North" className="bg-slate-900 text-white">North Bound</option>
-              <option value="South" className="bg-slate-900 text-white">South Bound</option>
-              <option value="East" className="bg-slate-900 text-white">East Bound</option>
-              <option value="West" className="bg-slate-900 text-white">West Bound</option>
-            </select>
+          <Badge status="Available" pulse>AUTO-VALIDATION ACTIVE</Badge>
+          <div className="bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl text-xs font-extrabold text-cyan-400">
+            Radius: 300m (Critical) / 250m (Urgent)
           </div>
         </div>
       </Card>
@@ -150,122 +182,110 @@ export const TrafficDashboard: React.FC = () => {
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Live Map (7 Cols) */}
-        <div className="lg:col-span-7 h-[480px]">
-          <Card className="h-full p-2 relative">
-            <LeafletMap
-              hospitals={hospitals}
-              trafficSignals={signals}
-              ambulancePosition={{ lat: activeAmbulancePos.lat, lng: activeAmbulancePos.lng, vehicle_number: 'AMB-MED-101' }}
-            />
-          </Card>
+        {/* Reusable Leaflet Map (7 Cols) */}
+        <div className="lg:col-span-7">
+          <MapView
+            hospitals={hospitals}
+            trafficSignals={signals}
+            ambulancePosition={activeAmbulancePos}
+            activePrioritySignal={
+              priorityState === 'AMBULANCE_PRIORITY_ACTIVE'
+                ? { name: 'MG Road Junction', countdown, direction: approachDirection }
+                : null
+            }
+          />
         </div>
 
-        {/* Active Signal Control Panel (5 Cols) */}
+        {/* Automatic Monitoring & Controls (5 Cols) */}
         <div className="lg:col-span-5 space-y-4">
           
-          {/* Active Priority Virtual Signal State Card */}
+          {/* Automatic Decision Status Card */}
           <Card className="space-y-4 border-l-4 border-l-cyan-400">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div>
-                <span className="text-[10px] font-extrabold uppercase text-cyan-400 tracking-wider">Virtual Signal State</span>
-                <h3 className="text-base font-extrabold text-white">Ambulance Entry Priority</h3>
+                <span className="text-[10px] font-extrabold uppercase text-cyan-400 tracking-wider">Automatic Decision Engine</span>
+                <h3 className="text-base font-extrabold text-white">MG Road Junction (#SIG-101)</h3>
               </div>
-              <Badge status={priorityState === 'AMBULANCE_PRIORITY_ACTIVE' ? 'Available' : 'Occupied'} pulse>
-                {priorityState}
-              </Badge>
+              <span className="bg-emerald-950 text-emerald-300 border border-emerald-800 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase animate-pulse">
+                Automatically Activated
+              </span>
             </div>
 
-            {/* Countdown & Direction Telemetry */}
-            <div className="grid grid-cols-2 gap-3 text-center">
-              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">Priority Countdown</span>
-                <span className="text-2xl font-extrabold text-cyan-400 animate-pulse">{countdown}s</span>
+            {/* Validation Criteria Checklist */}
+            <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-2 text-[11px]">
+              <div className="flex items-center justify-between font-extrabold text-white">
+                <span>Automatic Decision Rationale:</span>
+                <span className="text-emerald-400">PASS (100% Validated)</span>
               </div>
-
-              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">Direction Corridor</span>
-                <span className="text-base font-extrabold text-emerald-400 flex items-center justify-center gap-1">
-                  <ArrowUpRight className="w-4 h-4" /> {approachDirection}
-                </span>
-              </div>
+              <ul className="space-y-1 text-slate-300">
+                <li className="flex items-center justify-between">
+                  <span>• GPS Accuracy ($\le 30$m):</span>
+                  <b className="text-emerald-400">12m (Valid)</b>
+                </li>
+                <li className="flex items-center justify-between">
+                  <span>• Patient Triage Level:</span>
+                  <b className="text-rose-400">Critical/Red</b>
+                </li>
+                <li className="flex items-center justify-between">
+                  <span>• Geofence Distance ($\le 300$m):</span>
+                  <b className="text-cyan-400">185m</b>
+                </li>
+                <li className="flex items-center justify-between">
+                  <span>• Approach Direction:</span>
+                  <b className="text-emerald-400">{approachDirection} Bound</b>
+                </li>
+              </ul>
             </div>
 
-            {/* Operator Control Actions (Approve, Reject, Pause, Manual Override, End Priority) */}
-            <div className="space-y-2">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Operator Action Controls</span>
-
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleApprove}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold flex items-center justify-center gap-1"
-                >
-                  <Check className="w-4 h-4" /> Approve Request
-                </Button>
-
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={handleReject}
-                  className="bg-rose-600 hover:bg-rose-500 text-white font-extrabold flex items-center justify-center gap-1"
-                >
-                  <X className="w-4 h-4" /> Reject Request
-                </Button>
-              </div>
+            {/* Operator Safety Controls */}
+            <div className="space-y-2 pt-1">
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Safety Oversight Controls</span>
 
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handlePause}
-                  className="border-slate-800 text-slate-200 hover:bg-slate-800 flex items-center justify-center gap-1 font-bold"
+                  onClick={() => handleManualOverride(1, 'RED', false)}
+                  className="border-rose-800 text-rose-300 hover:bg-rose-950/50 font-bold text-xs"
+                >
+                  <X className="w-3.5 h-3.5" /> Cancel Priority
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsPaused(!isPaused)}
+                  className="border-slate-800 text-slate-300 hover:bg-slate-800 font-bold text-xs"
                 >
                   {isPaused ? <Play className="w-3.5 h-3.5 text-cyan-400" /> : <Pause className="w-3.5 h-3.5 text-amber-400" />}
-                  {isPaused ? 'Resume Priority' : 'Pause Priority'}
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleManualOverride(1, 'GREEN', true)}
-                  className="border-purple-800 text-purple-300 hover:bg-purple-950/50 font-bold"
-                >
-                  Manual Override
+                  {isPaused ? 'Resume' : 'Pause'}
                 </Button>
               </div>
 
               <Button
-                variant="secondary"
+                variant="outline"
                 size="sm"
-                onClick={() => setPriorityState('NORMAL')}
-                className="w-full bg-slate-950 border border-slate-800 text-slate-300 hover:bg-slate-800 font-bold"
+                onClick={() => handleManualOverride(1, 'GREEN', true)}
+                className="w-full border-purple-800 text-purple-300 hover:bg-purple-950/50 font-bold text-xs"
               >
-                End Priority & Reset Signal
+                Manual Override Command
               </Button>
             </div>
           </Card>
 
-          {/* List of Signal Controllers */}
+          {/* Queued & Safety Blocked Panel */}
           <Card className="space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <h3 className="text-xs font-extrabold text-white uppercase">Traffic Signal Matrix ({signals.length})</h3>
-              <span className="text-[10px] font-bold text-cyan-400">Proximity: 300m / 500m</span>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2 text-xs">
+              <span className="font-extrabold text-white uppercase">Safety & Conflict Queue</span>
+              <span className="text-[10px] font-bold text-amber-400">0 Safety Blocked</span>
             </div>
 
-            <div className="space-y-2 max-h-[160px] overflow-y-auto">
-              {signals.map((sig) => (
-                <div key={sig.id} className="p-2.5 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
-                  <div>
-                    <span className="font-extrabold text-white block">{sig.name}</span>
-                    <span className="text-[10px] text-slate-400">Normal Cycle: {sig.normal_cycle}</span>
-                  </div>
-                  <Badge status={sig.current_status === 'GREEN' ? 'Available' : 'Occupied'} pulse={Boolean(sig.emergency_mode)}>
-                    {sig.current_status}
-                  </Badge>
-                </div>
-              ))}
+            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-200">No Conflicting Ambulances</span>
+                <span className="text-[10px] font-bold text-emerald-400">CLEAR</span>
+              </div>
+              <p className="text-[11px] text-slate-400">Queue evaluates triage priority & ETA if multi-ambulance approach occurs.</p>
             </div>
           </Card>
 
@@ -286,9 +306,9 @@ export const TrafficDashboard: React.FC = () => {
                 <th className="pb-2">Time</th>
                 <th className="pb-2">Traffic Signal</th>
                 <th className="pb-2">Ambulance ID</th>
-                <th className="pb-2">Event Status</th>
+                <th className="pb-2">Decision Status</th>
                 <th className="pb-2">Approach Direction</th>
-                <th className="pb-2">Audit Notes</th>
+                <th className="pb-2">Auto Validation Reason</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800 text-slate-300 font-medium">
@@ -298,16 +318,26 @@ export const TrafficDashboard: React.FC = () => {
                   <td className="py-2.5 font-bold text-white">{h.signal_name}</td>
                   <td className="py-2.5 text-cyan-400 font-bold">{h.vehicle_number || 'AMB-MED-101'}</td>
                   <td className="py-2.5">
-                    <Badge status="Available">{h.status}</Badge>
+                    <span className="bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase">
+                      {h.status || 'AUTO_APPROVED'}
+                    </span>
                   </td>
                   <td className="py-2.5 text-emerald-400 font-bold">{approachDirection} Bound</td>
-                  <td className="py-2.5 text-slate-400">{h.notes || 'Auto Geofence Proximity Trigger'}</td>
+                  <td className="py-2.5 text-slate-400">{h.notes || 'Auto-Activated: Critical triage within 185m'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </Card>
+
+      {/* Admin Reset Map Modal */}
+      <ResetMapDemoModal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+        onConfirm={handleConfirmResetMap}
+        isLoading={isResetting}
+      />
 
     </div>
   );

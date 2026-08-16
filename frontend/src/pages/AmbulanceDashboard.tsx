@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { LeafletMap } from '../components/LeafletMap';
+import { MapView } from '../components/map/MapView';
 import { Hospital, TrafficSignal, TriageLevel } from '../types';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { Truck, Navigation, AlertTriangle, CheckCircle2, ShieldCheck, MapPin, Gauge, Activity, Radio } from 'lucide-react';
+import { Truck, Navigation, AlertTriangle, CheckCircle2, ShieldCheck, MapPin, Gauge, Activity, Radio, Power } from 'lucide-react';
 
 export const AmbulanceDashboard: React.FC = () => {
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
@@ -15,10 +15,13 @@ export const AmbulanceDashboard: React.FC = () => {
   const [gender, setGender] = useState('Male');
   const [symptoms, setSymptoms] = useState('Severe chest pain, shortness of breath, acute diaphoresis');
   const [triageLevel, setTriageLevel] = useState<TriageLevel>('Critical/Red');
-  const [isSimulating, setIsSimulating] = useState(false);
+
+  // GPS Telemetry State
+  const [isGpsActive, setIsGpsActive] = useState(true);
   const [posIndex, setPosIndex] = useState(0);
   const [actionMsg, setActionMsg] = useState('');
   const [priorityTriggered, setPriorityTriggered] = useState(false);
+  const [gpsAccuracy, setGpsAccuracy] = useState(12);
 
   // Simulated GPS Waypoints route
   const waypoints = [
@@ -45,10 +48,31 @@ export const AmbulanceDashboard: React.FC = () => {
     loadData();
   }, []);
 
-  // GPS Movement Simulation & Proximity Priority Trigger
+  // Browser Geolocation API & Waypoint Fallback
   useEffect(() => {
     let interval: any;
-    if (isSimulating) {
+    let watchId: number;
+
+    if (isGpsActive) {
+      if ('geolocation' in navigator) {
+        watchId = navigator.geolocation.watchPosition(
+          (pos) => {
+            setGpsAccuracy(Math.round(pos.coords.accuracy));
+            api.updateAmbulanceLocation(1, pos.coords.latitude, pos.coords.longitude).then((res: any) => {
+              if (res && res.priorityTriggered) {
+                setPriorityTriggered(true);
+                setActionMsg('AUTOMATED GEOFENCE TRIGGER: "Ambulance Entry Priority" signal auto-activated!');
+              }
+            }).catch(console.error);
+          },
+          (err) => {
+            console.warn('Browser GPS watch failed, falling back to route waypoint simulation:', err.message);
+          },
+          { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+        );
+      }
+
+      // Waypoint loop for demonstration animation
       interval = setInterval(async () => {
         setPosIndex((prevIndex) => {
           const nextIndex = (prevIndex + 1) % waypoints.length;
@@ -57,16 +81,20 @@ export const AmbulanceDashboard: React.FC = () => {
           api.updateAmbulanceLocation(1, nextPos.lat, nextPos.lng).then((res: any) => {
             if (res && res.priorityTriggered) {
               setPriorityTriggered(true);
-              setActionMsg(`AUTOMATED GEOFENCE TRIGGER: Traffic Signal Priority Activated GREEN within 500m!`);
+              setActionMsg('AUTOMATED GEOFENCE TRIGGER: "Ambulance Entry Priority" signal auto-activated within 300m!');
             }
           }).catch(console.error);
 
           return nextIndex;
         });
-      }, 3000);
+      }, 3500);
     }
-    return () => clearInterval(interval);
-  }, [isSimulating]);
+
+    return () => {
+      if (interval) clearInterval(interval);
+      if (watchId && 'geolocation' in navigator) navigator.geolocation.clearWatch(watchId);
+    };
+  }, [isGpsActive]);
 
   const handleRegisterPatient = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,8 +110,8 @@ export const AmbulanceDashboard: React.FC = () => {
         triage_level: triageLevel,
         estimated_arrival_time: 12
       });
-      setActionMsg(`Emergency Intake Registered for ${patientName}! CareLink ER Notification Broadcasted.`);
-      setIsSimulating(true);
+      setActionMsg(`Emergency Intake Registered for ${patientName}! CareLink ER & Traffic Controllers Notified.`);
+      setIsGpsActive(true);
     } catch (err: any) {
       setActionMsg(`Error: ${err.message}`);
     }
@@ -103,19 +131,22 @@ export const AmbulanceDashboard: React.FC = () => {
               Ambulance Telemetry & Patient Registration
               <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
             </h2>
-            <p className="text-xs text-slate-400">AMB-MED-101 • Advanced Life Support Vehicle • Live GPS Sync</p>
+            <p className="text-xs text-slate-400">AMB-MED-101 • Advanced Life Support Vehicle • Geolocation API Live</p>
           </div>
         </div>
 
         <div className="flex items-center space-x-3">
-          <Badge status="Available" pulse>GPS LIVE</Badge>
+          <Badge status={isGpsActive ? 'Available' : 'Occupied'} pulse={isGpsActive}>
+            {isGpsActive ? 'GPS STREAMING LIVE' : 'GPS PAUSED'}
+          </Badge>
+
           <Button
-            variant={isSimulating ? 'danger' : 'primary'}
+            variant={isGpsActive ? 'danger' : 'primary'}
             size="sm"
-            onClick={() => setIsSimulating(!isSimulating)}
-            className={isSimulating ? 'bg-rose-600 animate-pulse' : 'bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold shadow-lg shadow-cyan-950'}
+            onClick={() => setIsGpsActive(!isGpsActive)}
+            className={isGpsActive ? 'bg-rose-600 font-extrabold' : 'bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold shadow-lg shadow-cyan-950'}
           >
-            {isSimulating ? 'Pause GPS Simulation' : 'Start Live GPS Navigation'}
+            {isGpsActive ? 'Pause GPS Stream' : 'Start Live GPS Navigation'}
           </Button>
         </div>
       </Card>
@@ -126,7 +157,7 @@ export const AmbulanceDashboard: React.FC = () => {
             ? 'bg-cyan-950/90 text-cyan-300 border-cyan-700 animate-cyan-pulse'
             : 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
         }`}>
-          <CheckCircle2 className="w-4 h-4" />
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           <span>{actionMsg}</span>
         </div>
       )}
@@ -134,22 +165,15 @@ export const AmbulanceDashboard: React.FC = () => {
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Live Route Map (7 Cols) with Radar Overlay */}
-        <div className="lg:col-span-7 h-[460px] relative overflow-hidden rounded-2xl">
-          <Card className="h-full p-2 relative z-10">
-            <LeafletMap
-              hospitals={hospitals}
-              trafficSignals={signals}
-              ambulancePosition={{ lat: currentPos.lat, lng: currentPos.lng, vehicle_number: 'AMB-MED-101' }}
-            />
-          </Card>
-
-          {/* Radar Sweep Effect */}
-          {isSimulating && (
-            <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden opacity-30">
-              <div className="radar-sweep animate-radar-spin"></div>
-            </div>
-          )}
+        {/* Reusable Leaflet Map (7 Cols) */}
+        <div className="lg:col-span-7">
+          <MapView
+            hospitals={hospitals}
+            trafficSignals={signals}
+            ambulancePosition={{ lat: currentPos.lat, lng: currentPos.lng, vehicle_number: 'AMB-MED-101', accuracy: gpsAccuracy, speed: 48 }}
+            isGpsActive={isGpsActive}
+            onGpsToggle={setIsGpsActive}
+          />
         </div>
 
         {/* Patient Intake Form (5 Cols) */}

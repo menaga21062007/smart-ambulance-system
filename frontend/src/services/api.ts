@@ -431,14 +431,32 @@ export const api = {
 
   getSignalHistory: async (): Promise<any[]> => {
     const history = [
-      { id: 1, signal_name: 'MG Road Junction', vehicle_number: 'AMB-MED-101', status: 'GREEN_PRIORITY', requested_at: '11:35:00 AM', notes: '500m Auto Geofence Trigger' },
-      { id: 2, signal_name: 'Hospital Entrance Gate', vehicle_number: 'AMB-MED-101', status: 'GREEN_PRIORITY', requested_at: '11:38:00 AM', notes: 'Manual Override Command' }
+      { id: 1, signal_name: 'MG Road Junction', vehicle_number: 'AMB-MED-101', status: 'AUTO_APPROVED', requested_at: '11:35:00 AM', notes: 'Auto-Activated: Critical triage within 185m' },
+      { id: 2, signal_name: 'Hospital Entrance Gate', vehicle_number: 'AMB-MED-101', status: 'AUTO_APPROVED', requested_at: '11:38:00 AM', notes: 'Auto-Activated: Urgent triage within 210m' }
     ];
     try {
       const res = await fetch(`${API_BASE}/traffic-signals/history`);
       return await handleResponse(res, history);
     } catch {
       return history;
+    }
+  },
+
+  // Admin Reset Map Demo Endpoint
+  resetMapDemoData: async (): Promise<any> => {
+    MOCK_SIGNALS.forEach(s => {
+      s.current_status = 'RED';
+      s.emergency_mode = 0;
+    });
+
+    try {
+      const res = await fetch(`${API_BASE}/admin/reset-map-demo`, {
+        method: 'POST',
+        headers: { ...getAuthHeader() }
+      });
+      return await handleResponse(res, { message: 'Map demonstration data reset successfully' });
+    } catch {
+      return { message: 'Map demonstration data reset successfully' };
     }
   },
 

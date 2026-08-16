@@ -28,6 +28,7 @@ import {
   completeCleaning
 } from '../controllers/cleaningController';
 import { getAnalyticsSummary } from '../controllers/reportsController';
+import { resetMapDemoData } from '../controllers/adminController';
 import { authenticateJWT, requireRoles } from '../middleware/auth';
 
 const router = Router();
@@ -61,6 +62,9 @@ router.post('/discharges', authenticateJWT, processDischarge);
 router.get('/traffic-signals', getTrafficSignals);
 router.patch('/traffic-signals/:id/override', authenticateJWT, overrideSignalStatus);
 router.get('/traffic-signals/history', getSignalHistory);
+
+// Admin Routes
+router.post('/admin/reset-map-demo', authenticateJWT, requireRoles(['System Administrator']), resetMapDemoData);
 
 // Bed Cleaning Workflow Routes
 router.get('/cleaning/beds', getBedsNeedingCleaning);
