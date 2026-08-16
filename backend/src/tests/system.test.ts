@@ -18,10 +18,11 @@ afterAll(async () => {
 describe('Smart Ambulance System API & Unit Tests', () => {
   let authToken: string;
 
-  it('1. GET /health - Should return status UP', async () => {
+  it('1. GET /health - Should return status ok', async () => {
     const res = await request(app).get('/health');
     expect(res.status).toBe(200);
-    expect(res.body.status).toBe('UP');
+    expect(['ok', 'UP']).toContain(res.body.status);
+    expect(res.body.service).toBe('carelink-backend');
   });
 
   it('2. GET /api/auth/demo-accounts - Should return list of pre-seeded demo users', async () => {
@@ -42,7 +43,6 @@ describe('Smart Ambulance System API & Unit Tests', () => {
   });
 
   it('4. Unit Test: Haversine Distance & Traffic Priority Proximity', () => {
-    // Distance between 12.9716, 77.5946 and 12.9712, 77.5940 is approx 77 meters (< 500m threshold)
     const dist = calculateDistanceMeters(12.9716, 77.5946, 12.9712, 77.5940);
     expect(dist).toBeLessThan(500);
   });
@@ -59,7 +59,6 @@ describe('Smart Ambulance System API & Unit Tests', () => {
     });
 
     expect(recommendation.primary).not.toBeNull();
-    // Primary bed for critical patient should ideally be ICU or Emergency bed
     expect(['ICU bed', 'Emergency bed']).toContain(recommendation.primary?.bed_type);
   });
 

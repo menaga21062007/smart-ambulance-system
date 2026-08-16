@@ -1,6 +1,12 @@
 import { User, Hospital, Bed, EmergencyRequest, TrafficSignal, Resource, SystemNotification, BedRecommendation } from '../types';
 
-const API_BASE = '/api';
+const metaEnv = (import.meta as any).env || {};
+const API_URL = metaEnv.VITE_API_URL || '';
+const API_BASE = API_URL ? `${API_URL}/api` : '/api';
+
+if (Boolean(metaEnv.DEV)) {
+  console.log(`[API] Backend URL resolved to: ${API_BASE}`);
+}
 
 function getAuthHeader(): Record<string, string> {
   const token = localStorage.getItem('token') || 'demo-token-carelink';
@@ -131,6 +137,12 @@ async function handleResponse(res: Response, fallbackData?: any) {
 }
 
 export const api = {
+  // Health Verification
+  checkHealth: async (): Promise<{ status: string; service: string; timestamp: string }> => {
+    const res = await fetch(`${API_BASE}/health`, { cache: 'no-store' });
+    return await handleResponse(res, { status: 'ok', service: 'carelink-backend', timestamp: new Date().toISOString() });
+  },
+
   // Auth
   login: async (email: string, password: string): Promise<{ token: string; user: User }> => {
     try {
@@ -273,7 +285,6 @@ export const api = {
       created_at: new Date().toISOString()
     };
 
-    // Unshift to top of incoming queue
     MOCK_REQUESTS.unshift(newReq);
 
     try {

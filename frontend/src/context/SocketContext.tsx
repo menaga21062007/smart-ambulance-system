@@ -9,37 +9,87 @@ interface ToastAlert {
   timestamp: string;
 }
 
+type ConnectionState = 'Connecting' | 'Connected' | 'Reconnecting' | 'Backend unavailable' | 'Demonstration mode';
+
 interface SocketContextType {
   socket: Socket | null;
+  connectionState: ConnectionState;
   connected: boolean;
   alerts: ToastAlert[];
   removeAlert: (id: string) => void;
+  retryHealthCheck: () => Promise<void>;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [connected, setConnected] = useState<boolean>(false);
+  const [connectionState, setConnectionState] = useState<ConnectionState>('Connecting');
   const [alerts, setAlerts] = useState<ToastAlert[]>([]);
 
+  const metaEnv = (import.meta as any).env || {};
+  const isDev = Boolean(metaEnv.DEV);
+  const apiUrl = metaEnv.VITE_API_URL || '';
+  const socketUrl = metaEnv.VITE_SOCKET_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+
+  const checkBackendHealth = async () => {
+    setConnectionState('Connecting');
+    try {
+      const endpoint = apiUrl ? `${apiUrl}/api/health` : '/api/health';
+      if (isDev) {
+        console.log(`[API] Checking backend health at: ${endpoint}`);
+      }
+
+      const res = await fetch(endpoint, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'ok') {
+          if (isDev) {
+            console.log(`[API] Health check status: OK`, data);
+          }
+          setConnectionState('Connected');
+          return true;
+        }
+      }
+      throw new Error('Health check returned non-ok status');
+    } catch (err: any) {
+      if (isDev) {
+        console.warn(`[API] Health check failed: ${err.message}. Entering Demonstration mode.`);
+      }
+      setConnectionState('Backend unavailable');
+      return false;
+    }
+  };
+
   useEffect(() => {
-    const metaEnv = (import.meta as any).env || {};
-    const socketUrl = metaEnv.VITE_SOCKET_URL || window.location.origin;
+    checkBackendHealth();
 
     const s = io(socketUrl, {
       transports: ['websocket', 'polling'],
-      reconnectionAttempts: 3,
-      timeout: 5000
+      withCredentials: true,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000
     });
 
     const handleConnect = () => {
-      console.log('Realtime socket connected:', s.id);
-      setConnected(true);
+      if (isDev) {
+        console.log(`[Socket] Connected: ${s.id}`);
+      }
+      setConnectionState('Connected');
     };
 
     const handleDisconnect = () => {
-      setConnected(false);
+      if (isDev) {
+        console.log(`[Socket] Disconnected`);
+      }
+      setConnectionState('Reconnecting');
+    };
+
+    const handleBackendStatus = (data: any) => {
+      if (data && data.status === 'connected') {
+        setConnectionState('Connected');
+      }
     };
 
     const handleIncomingEmergency = (data: any) => {
@@ -51,6 +101,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     const handleTrafficPriority = (data: any) => {
+      if (isDev) {
+        console.log(`[Signal] Automatic priority activated:`, data);
+      }
       addToast({
         type: 'traffic',
         title: '🚥 AUTOMATED TRAFFIC PRIORITY ACTIVATED',
@@ -66,30 +119,22 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
     };
 
-    const handleResourceAlert = (data: any) => {
-      addToast({
-        type: 'resource',
-        title: `⚠️ ${data.title}`,
-        message: data.message
-      });
-    };
-
     s.on('connect', handleConnect);
     s.on('disconnect', handleDisconnect);
+    s.on('backend-status-changed', handleBackendStatus);
     s.on('incoming_emergency_alert', handleIncomingEmergency);
     s.on('signal-status-changed', handleTrafficPriority);
     s.on('bed_reserved', handleBedReserved);
-    s.on('resource_alert', handleResourceAlert);
 
     setSocket(s);
 
     return () => {
       s.off('connect', handleConnect);
       s.off('disconnect', handleDisconnect);
+      s.off('backend-status-changed', handleBackendStatus);
       s.off('incoming_emergency_alert', handleIncomingEmergency);
       s.off('signal-status-changed', handleTrafficPriority);
       s.off('bed_reserved', handleBedReserved);
-      s.off('resource_alert', handleResourceAlert);
       s.disconnect();
     };
   }, []);
@@ -107,8 +152,14 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setAlerts((prev) => prev.filter((a) => a.id !== id));
   };
 
+  const retryHealthCheck = async () => {
+    await checkBackendHealth();
+  };
+
+  const isConnected = connectionState === 'Connected';
+
   return (
-    <SocketContext.Provider value={{ socket, connected, alerts, removeAlert }}>
+    <SocketContext.Provider value={{ socket, connectionState, connected: isConnected, alerts, removeAlert, retryHealthCheck }}>
       {children}
     </SocketContext.Provider>
   );

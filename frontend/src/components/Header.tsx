@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { CareLinkLogo } from './CareLinkLogo';
+import { Button } from './ui/Button';
 import {
   Bell,
   ChevronDown,
@@ -12,7 +13,9 @@ import {
   LogOut,
   Search,
   Activity,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -29,11 +32,12 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout
 }) => {
   const { user, demoAccounts, loginAsDemoUser } = useAuth();
-  const { connected, alerts, removeAlert } = useSocket();
+  const { connectionState, connected, alerts, removeAlert, retryHealthCheck } = useSocket();
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showAlertDrawer, setShowAlertDrawer] = useState(false);
   const [timeString, setTimeString] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isRetrying, setIsRetrying] = useState(false);
 
   useEffect(() => {
     const updateTime = () => {
@@ -49,6 +53,12 @@ export const Header: React.FC<HeaderProps> = ({
     return () => clearInterval(interval);
   }, []);
 
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    await retryHealthCheck();
+    setIsRetrying(false);
+  };
+
   return (
     <header className="bg-slate-950/95 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50 px-4 py-2.5 shadow-xl">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
@@ -58,8 +68,8 @@ export const Header: React.FC<HeaderProps> = ({
           <CareLinkLogo size="md" light />
         </button>
 
-        {/* Center: Search Input & Hospital Operational / Fallback Status */}
-        <div className="hidden md:flex items-center space-x-4 flex-1 max-w-lg">
+        {/* Center: Search Input & Dynamic Connection Status Pill */}
+        <div className="hidden md:flex items-center space-x-4 flex-1 max-w-xl">
           <div className="relative w-full">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
@@ -71,18 +81,32 @@ export const Header: React.FC<HeaderProps> = ({
             />
           </div>
 
-          {connected ? (
+          {/* Connection Status Pill */}
+          {connectionState === 'Connected' ? (
             <div className="hidden lg:flex items-center gap-1.5 bg-emerald-950/60 border border-emerald-800 text-emerald-300 px-3 py-1 rounded-full text-xs font-extrabold shrink-0">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
               </span>
-              <span>City General ER • Live Connected</span>
+              <span>Live Backend Connected</span>
+            </div>
+          ) : connectionState === 'Connecting' || connectionState === 'Reconnecting' ? (
+            <div className="hidden lg:flex items-center gap-1.5 bg-cyan-950/80 border border-cyan-800 text-cyan-300 px-3 py-1 rounded-full text-[11px] font-extrabold shrink-0">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400 shrink-0" />
+              <span>{connectionState}...</span>
             </div>
           ) : (
-            <div className="hidden lg:flex items-center gap-1.5 bg-amber-950/80 border border-amber-800 text-amber-300 px-3 py-1 rounded-full text-[11px] font-extrabold shrink-0">
+            <div className="hidden lg:flex items-center gap-2 bg-amber-950/90 border border-amber-800 text-amber-200 px-3 py-1 rounded-full text-[11px] font-extrabold shrink-0">
               <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span>Live backend unavailable — showing demonstration data.</span>
+              <button
+                onClick={handleRetry}
+                disabled={isRetrying}
+                className="ml-1 px-2 py-0.5 bg-amber-900 hover:bg-amber-800 text-white rounded-lg text-[10px] font-extrabold flex items-center gap-1 transition-colors"
+              >
+                <RefreshCw className={`w-3 h-3 ${isRetrying ? 'animate-spin' : ''}`} />
+                <span>Retry</span>
+              </button>
             </div>
           )}
         </div>

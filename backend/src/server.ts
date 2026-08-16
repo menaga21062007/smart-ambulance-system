@@ -11,23 +11,54 @@ import routes from './routes';
 const app = express();
 const server = http.createServer(app);
 
+const allowedOrigins = [
+  'https://nimble-florentine-0de327.netlify.app',
+  'http://localhost:3000',
+  'http://localhost:5173'
+];
+
 const io = new Server(server, {
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE']
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.netlify.app')) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Allow for demo prototyping
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS']
   }
 });
 
-app.use(cors());
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.netlify.app')) {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+}));
+
 app.use(express.json());
 
 // API Base Router
 app.use('/api', routes);
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'UP', timestamp: new Date().toISOString() });
-});
+// Health check endpoints
+const healthCheckHandler = (req: express.Request, res: express.Response) => {
+  res.json({
+    status: 'ok',
+    service: 'carelink-backend',
+    timestamp: new Date().toISOString()
+  });
+};
+
+app.get('/health', healthCheckHandler);
+app.get('/api/health', healthCheckHandler);
 
 // Initialize Socket.IO handlers
 initializeSocketIO(io);
@@ -35,17 +66,17 @@ initializeSocketIO(io);
 // Start server after initializing database
 async function startServer() {
   try {
-    console.log('Initializing SQLite Database...');
+    console.log('[API] Initializing SQLite Database...');
     await initializeSchema();
     await seedDatabase();
 
     server.listen(CONFIG.PORT, () => {
       console.log(`=======================================================`);
-      console.log(`🚑 Smart Emergency Care Backend running on port ${CONFIG.PORT}`);
+      console.log(`🚑 CareLink Smart Emergency Backend running on port ${CONFIG.PORT}`);
       console.log(`=======================================================`);
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error('[API] Failed to start server:', error);
     process.exit(1);
   }
 }

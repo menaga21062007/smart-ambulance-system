@@ -21,11 +21,11 @@ A full-stack, software-based solution connecting emergency ambulances, hospital 
    - Emergency patient intake registration (Triage level, symptoms, equipment requirements).
    - Real-time browser Geolocation API (`navigator.geolocation.watchPosition`) + simulated waypoint movement fallback.
    - Interactive Leaflet route map & live ETA calculation.
-2. **Traffic Priority Signal Simulation**:
-   - Virtual signal states: `NORMAL`, `PRIORITY_REQUESTED`, `APPROVED`, `AMBULANCE_PRIORITY_ACTIVE`, `RETURNING_TO_NORMAL`.
-   - Software-only simulation with automated 300m/500m radius Haversine distance geofence trigger.
-   - Traffic operator dashboard controls: Approve, Reject, Pause, and Manual Override.
-   - Configurable countdown timer, approach direction indicators (North, South, East, West), and full audit logging.
+2. **Automated Traffic Priority Signal Simulation**:
+   - Virtual signal states: `NORMAL`, `AMBULANCE_DETECTED`, `VALIDATING`, `AUTO_APPROVED`, `AMBULANCE_PRIORITY_ACTIVE`, `RETURNING_TO_NORMAL`.
+   - Software-only simulation with automated 300m (Critical) / 250m (Urgent) radius Haversine distance geofence trigger.
+   - GPS accuracy check ($\le 30$m) and multi-ambulance conflict queuing (`CONFLICT_QUEUED`).
+   - Operator monitoring dashboard, countdown timers, approach direction indicators, and full audit logging.
 3. **AI-Powered Bed Recommendation Scoring Engine**:
    - Decision-support scoring algorithm ranking beds based on triage level, equipment matching (Ventilators, Oxygen), isolation capability, floor proximity, and ward capacity.
    - Alternate hospital & bed recommendations when target ER capacity is at 100%.
@@ -40,6 +40,7 @@ A full-stack, software-based solution connecting emergency ambulances, hospital 
    - Doctor diagnosis & treatment recorder, medical notes, discharge approval.
    - Mobile-friendly sanitization checklist for cleaning staff.
 7. **System Administration & Analytics**:
+   - Administrator Reset Map Demonstration Data tool (`POST /api/admin/reset-map-demo`).
    - User account management across all 7 pre-seeded roles.
    - Recharts visual graphs for admissions by triage level, bed occupancy metrics, and exportable analytics reports.
 
@@ -66,6 +67,48 @@ You can log in with any of these pre-seeded demo credentials (Password: `passwor
 - **Frontend**: React, TypeScript, Tailwind CSS, Leaflet (`react-leaflet`), Recharts, Lucide React icons.
 - **Backend**: Node.js, Express, TypeScript, Socket.IO, SQLite (`sqlite3` / `sqlite`), JWT Authentication, BcryptJS.
 - **Database**: Zero-config SQLite database (`database.sqlite`) pre-seeded with 2 Hospitals, Wards, Beds, Ambulances, Resources, Traffic Signals, and Staff.
+
+---
+
+## 🔧 Production Troubleshooting & Deployment Guide
+
+### 1. Netlify Environment Variables
+Set these environment variables in your Netlify site settings (**Site configuration** → **Environment variables**):
+```env
+VITE_API_URL=https://YOUR_DEPLOYED_BACKEND_URL
+VITE_SOCKET_URL=https://YOUR_DEPLOYED_BACKEND_URL
+```
+
+### 2. Backend Deployment & CORS Configuration
+Ensure your Express backend server allows your Netlify domain (`https://nimble-florentine-0de327.netlify.app`):
+```typescript
+app.use(cors({
+  origin: ['https://nimble-florentine-0de327.netlify.app'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+}));
+```
+
+### 3. HTTPS & Secure WebSockets
+- In production, ensure both frontend and backend use `https://` protocols.
+- Socket.IO automatically upgrades to secure WebSockets (`wss://`).
+
+### 4. Health-Check Testing
+Verify backend health by calling:
+```bash
+curl -X GET https://YOUR_DEPLOYED_BACKEND_URL/api/health
+```
+Expected JSON Response:
+```json
+{
+  "status": "ok",
+  "service": "carelink-backend",
+  "timestamp": "2026-08-16T10:15:00.000Z"
+}
+```
+
+### 5. Database & Seed Initialization
+The SQLite database file (`database.sqlite`) automatically initializes schema and seeds 7 demo user accounts upon backend startup.
 
 ---
 
